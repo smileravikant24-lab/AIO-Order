@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Satija Paper - FMS Management & Upload Portal</title>
+  <style>
+    :root {
+      --primary: #1e40af;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header { background: var(--card-bg); padding: 20px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .header h1 { font-size: 20px; color: var(--primary); }
+    .user-tag { background: #dbeafe; color: #1e40af; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+    
+    .card { background: var(--card-bg); padding: 18px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; }
+    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #475569; }
+    select, input { padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; outline: none; background: white; }
+    select:focus, input:focus { border-color: var(--primary); }
+
+    .table-container { overflow-x: auto; background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+    th { background: #f1f5f9; font-weight: 600; color: #334155; position: sticky; top: 0; }
+    tr:hover { background: #f8fafc; }
+
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .Pending { background: #fef3c7; color: #92400e; }
+    .Uploaded { background: #dcfce7; color: #166534; }
+    .type-sales { background: #e0e7ff; color: #3730a3; }
+    .type-dispatch { background: #fae8ff; color: #86198f; }
+
+    .items-box { max-height: 80px; overflow-y: auto; white-space: pre-line; background: #f8fafc; padding: 6px; border-radius: 4px; font-size: 11px; border: 1px solid var(--border); line-height: 1.4; }
+    button { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    button:hover { background: var(--primary-hover); }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    .link-btn { color: var(--primary); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .link-btn:hover { text-decoration: underline; }
+    .loader { text-align: center; padding: 30px; font-weight: 600; color: #64748b; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- TOP BAR -->
+  <div class="header">
+    <div>
+      <h1>Satija Paper FMS - Order & Dispatch Portal</h1>
+      <small style="color: #64748b;">Consolidated Order Dispatch & Documentation System</small>
+    </div>
+    <div id="userBadge" class="user-tag">Role: Authenticating...</div>
+  </div>
+
+  <!-- FILTERS & USER LOGIN SWITCH -->
+  <div class="card">
+    <div class="filters">
+      <div class="form-group">
+        <label>Select User Login:</label>
+        <select id="userSelector" onchange="switchUser()">
+          <optgroup label="Management">
+            <option value="ADMIN">Khushi Painter (Admin - mis@satijapaper.com)</option>
+            <option value="MANAGER">Mukesh Shukla (Manager - mukhesh.shukla@satijapaper.com)</option>
+          </optgroup>
+          <optgroup label="Sales Executives">
+            <option value="PAWAN">Mr. Pawan Negi (pawansatijapaper@gmail.com)</option>
+            <option value="SONU">Mr. Sonu Chauhan (sonusatijapaper@gmail.com)</option>
+            <option value="RISHABH">Mr. Rishabh Jain (rishabhsatijapaper@gmail.com)</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Filter By Doc Type:</label>
+        <select id="typeFilter" onchange="renderFilteredData()">
+          <option value="ALL">All Types (Sales + Dispatch)</option>
+          <option value="Sales Order">Sales Order (Form 1)</option>
+          <option value="Direct Dispatch">Direct Dispatch (Form 2)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Filter By Status:</label>
+        <select id="statusFilter" onchange="renderFilteredData()">
+          <option value="ALL">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Uploaded">Uploaded</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Search Order / Party / Items:</label>
+        <input type="text" id="searchInput" placeholder="Search PO, Party name..." onkeyup="renderFilteredData()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN TABLE -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Order / PO No</th>
+          <th>Date & Time</th>
+          <th>Party Details</th>
+          <th>Merged Items</th>
+          <th>Total Quantities</th>
+          <th>Assigned To</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="9" class="loader">Loading records from Google Sheets...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
+  const API_URL = "https://script.google.com/macros/s/AKfycbzyl2ykqWMmmFhm8KH4dYSynxvB1ByYPHg78dEisUMCA8Q1T3_XYxPExQaXRttSeFLMeg/exec";
+
+  // Role Mappings
+  const USERS = {
+    "ADMIN": { name: "Khushi Painter (Admin)", role: "ADMIN", viewAll: true, canAssign: true },
+    "MANAGER": { name: "Mukesh Shukla (Manager)", role: "MANAGER", viewAll: true, canAssign: true },
+    "PAWAN": { name: "Mr. Pawan Negi", role: "USER", assignKey: "Mr. Pawan Negi", viewAll: false, canAssign: false },
+    "SONU": { name: "Mr. Sonu Chauhan", role: "USER", assignKey: "Mr. Sonu Chauhan", viewAll: false, canAssign: false },
+    "RISHABH": { name: "Mr. Rishabh Jain", role: "USER", assignKey: "Mr. Rishabh Jain", viewAll: false, canAssign: false }
+  };
+
+  const ASSIGNABLE_USERS = [
+    "Mr. Pawan Negi",
+    "Mr. Sonu Chauhan",
+    "Mr. Rishabh Jain"
+  ];
+
+  let rawOrders = [];
+  let currentUser = USERS["ADMIN"];
+
+  window.onload = function() {
+    switchUser();
+    fetchData();
+  };
+
+  function switchUser() {
+    const key = document.getElementById('userSelector').value;
+    currentUser = USERS[key];
+    document.getElementById('userBadge').innerText = `${currentUser.name} [${currentUser.role}]`;
+    renderFilteredData();
+  }
+
+  async function fetchData() {
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="loader">Fetching data...</td></tr>';
+    try {
+      const response = await fetch(`${API_URL}?action=fetchOrders`);
+      const result = await response.json();
+      if (result.success) {
+        rawOrders = result.data;
+        renderFilteredData();
+      } else {
+        document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Error: ${result.error}</td></tr>`;
+      }
+    } catch (e) {
+      document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Failed to connect to Google Sheets API. Check API_URL.</td></tr>`;
+    }
+  }
+
+  function renderFilteredData() {
+    const type = document.getElementById('typeFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+    const filtered = rawOrders.filter(item => {
+      // Role Privacy Filter
+      if (!currentUser.viewAll && item.assignedTo !== currentUser.assignKey) {
+        return false;
+      }
+      // Type Filter
+      if (type !== 'ALL' && item.docType !== type) return false;
+      // Status Filter
+      if (status !== 'ALL' && item.status !== status) return false;
+      // Search
+      if (search) {
+        const str = `${item.docNo} ${item.party} ${item.items} ${item.address}`.toLowerCase();
+        if (!str.includes(search)) return false;
+      }
+      return true;
+    });
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px; color:#94a3b8;">No matching orders found.</td></tr>';
+      return;
+    }
+
+    filtered.forEach(item => {
+      const tr = document.createElement('tr');
+      const tagClass = item.docType === 'Sales Order' ? 'type-sales' : 'type-dispatch';
+
+      // Assignment Control
+      let assignHtml = '';
+      if (currentUser.canAssign) {
+        let options = `<option value="Unassigned" ${item.assignedTo === 'Unassigned' ? 'selected' : ''}>Unassigned</option>`;
+        ASSIGNABLE_USERS.forEach(u => {
+          options += `<option value="${u}" ${item.assignedTo === u ? 'selected' : ''}>${u}</option>`;
+        });
+        assignHtml = `<select onchange="updateAssign(${item.rowIndex}, this.value)">${options}</select>`;
+      } else {
+        assignHtml = `<strong>${item.assignedTo}</strong>`;
+      }
+
+      // Action Control
+      let actionHtml = '';
+      if (item.docLink) {
+        actionHtml = `<a class="link-btn" href="${item.docLink}" target="_blank">📄 View Doc</a>`;
+      } else {
+        actionHtml = `
+          <input type="file" id="file_${item.rowIndex}" style="width: 140px; font-size:11px;" />
+          <button onclick="uploadDocument(${item.rowIndex})" style="margin-top:4px;">Upload</button>
+        `;
+      }
+
+      tr.innerHTML = `
+        <td><span class="badge ${tagClass}">${item.docType}</span></td>
+        <td><strong>${item.docNo}</strong></td>
+        <td><small>${item.date}</small></td>
+        <td><strong>${item.party}</strong><br><small style="color:#64748b;">${item.address}</small></td>
+        <td><div class="items-box">${item.items}</div></td>
+        <td>Ream: ${item.ream}<br>Box: ${item.box} ${item.kg > 0 ? '<br>Kg: ' + item.kg : ''}</td>
+        <td>${assignHtml}</td>
+        <td><span class="badge ${item.status}">${item.status}</span></td>
+        <td id="act_${item.rowIndex}">${actionHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function updateAssign(rowIndex, assignTo) {
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'assignOrder',
+          rowIndex: rowIndex,
+          assignTo: assignTo
+        })
+      });
+      const target = rawOrders.find(o => o.rowIndex === rowIndex);
+      if (target) target.assignedTo = assignTo;
+    } catch(e) {
+      alert('Error saving assignment');
+    }
+  }
+
+  function uploadDocument(rowIndex) {
+    const fileInput = document.getElementById(`file_${rowIndex}`);
+    if (!fileInput.files.length) {
+      alert('Please choose a file first.');
+      return;
+    }
+    const file = fileInput.files[0];
+    const actionCell = document.getElementById(`act_${rowIndex}`);
+    actionCell.innerHTML = '<small style="color:var(--primary); font-weight:bold;">Uploading to Drive...</small>';
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const rawData = e.target.result.split(',')[1];
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'uploadDoc',
+            rowIndex: rowIndex,
+            fileData: rawData,
+            fileName: file.name,
+            mimeType: file.type
+          })
+        });
+        const res = await response.json();
+        if (res.success) {
+          const target = rawOrders.find(o => o.rowIndex === rowIndex);
+          if (target) {
+            target.status = 'Uploaded';
+            target.docLink = res.url;
+          }
+          renderFilteredData();
+        } else {
+          alert('Upload failed: ' + res.error);
+          renderFilteredData();
+        }
+      } catch (err) {
+        alert('Server communication error.');
+        renderFilteredData();
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+</script>
+
+</body>
+</html>
