@@ -131,7 +131,7 @@
 
   window.onload = function() {
     initAuthAndRenderUI();
-    fetchDataJSONP();
+    fetchData(); // Using Standard Robust Fetch
   };
 
   function initAuthAndRenderUI() {
@@ -173,26 +173,31 @@
     renderFilteredData();
   }
 
-  // Direct Bypass with JSONP (Zero CORS Lag)
-  function fetchDataJSONP() {
-    document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="loader">Fetching data from Google Sheets...</td></tr>';
+  // Standard Fetch Approach
+  async function fetchData() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '<tr><td colspan="9" class="loader">Fetching data from Google Sheets...</td></tr>';
     
-    // Global Callback Handler
-    window.handleApiResponse = function(response) {
-      if (response && response.success) {
-        rawOrders = response.data;
+    try {
+      const response = await fetch(`${API_URL}?action=fetchOrders`, {
+        method: 'GET'
+      });
+      
+      const result = await response.json();
+      
+      if (result && result.success) {
+        rawOrders = result.data;
         renderFilteredData();
       } else {
-        document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" style="text-align:center; color:red; padding:20px;">Error: ${response ? response.error : 'Unknown'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red; padding:20px;">Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
       }
-    };
-
-    const script = document.createElement('script');
-    script.src = `${API_URL}?action=fetchOrders&callback=handleApiResponse&_t=${Date.now()}`;
-    script.onerror = function() {
-      document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" style="text-align:center; color:red; padding:20px;">Failed to load data. Please ensure deployment is set to 'Anyone'.</td></tr>`;
-    };
-    document.body.appendChild(script);
+    } catch (err) {
+      console.error("Fetch Error:", err);
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red; padding:20px;">
+        Failed to load data. <br>
+        <small style="color:#64748b;">Please verify your Google Apps Script deployment is active and set to <b>"Anyone"</b>.</small>
+      </td></tr>`;
+    }
   }
 
   function renderFilteredData() {
