@@ -19,7 +19,7 @@
     .header { background: var(--card-bg); padding: 18px 20px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
     .header h1 { font-size: 19px; color: var(--primary); }
     .user-badge { background: #dbeafe; color: #1e40af; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1px solid #bfdbfe; }
-    
+
     .card { background: var(--card-bg); padding: 16px 20px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; }
     .filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
     .form-group { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
@@ -34,17 +34,29 @@
     tr:hover { background: #f8fafc; }
 
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
-    .Pending { background: #fef3c7; color: #92400e; }
-    .Uploaded { background: #dcfce7; color: #166534; }
-    .type-sales { background: #e0e7ff; color: #3730a3; }
+    .Pending   { background: #fef3c7; color: #92400e; }
+    .Uploaded  { background: #dcfce7; color: #166534; }
+    .ByCourier { background: #fff7ed; color: #9a3412; }
+    .type-sales    { background: #e0e7ff; color: #3730a3; }
     .type-dispatch { background: #fae8ff; color: #86198f; }
 
     .items-box { max-height: 80px; overflow-y: auto; white-space: pre-line; background: #f8fafc; padding: 6px; border-radius: 4px; font-size: 11px; border: 1px solid var(--border); line-height: 1.4; }
+
     button { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
     button:hover { background: var(--primary-hover); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* "Save Posted Orders" button — green */
+    .btn-post-export { background: #059669; }
+    .btn-post-export:hover:not(:disabled) { background: #047857; }
+
     .link-btn { color: var(--primary); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
     .link-btn:hover { text-decoration: underline; }
     .loader { text-align: center; padding: 30px; font-weight: 600; color: #64748b; }
+
+    /* Courier row highlight */
+    tr.courier-row { background: #fff7ed !important; }
+    tr.courier-row:hover { background: #ffedd5 !important; }
   </style>
 </head>
 <body>
@@ -52,8 +64,8 @@
 <div class="container">
   <div class="header">
     <div>
-      <h1>Order & Dispatch Invoice Portal</h1>
-      <small style="color: #64748b;">Consolidated Order Dispatch & Documentation System</small>
+      <h1>Order &amp; Dispatch Invoice Portal</h1>
+      <small style="color: #64748b;">Consolidated Order Dispatch &amp; Documentation System</small>
     </div>
     <div id="userBadge" class="user-badge">Role: Authenticating...</div>
   </div>
@@ -77,12 +89,20 @@
           <option value="ALL">All Status</option>
           <option value="Pending">Pending Only</option>
           <option value="Uploaded">Uploaded Only</option>
+          <option value="ByCourier">By Courier (Post) Only</option>
         </select>
       </div>
 
       <div class="form-group" style="flex-grow: 1;">
         <label>Search Order / Party / Items:</label>
         <input type="text" id="searchInput" placeholder="Search PO, Party name..." onkeyup="renderFilteredData()" />
+      </div>
+
+      <!-- Shown only to ADMIN / MANAGER — saves all "By Courier" rows to a new sheet -->
+      <div id="postExportContainer" style="display:none; align-self:flex-end;">
+        <button class="btn-post-export" onclick="savePostedOrdersToSheet()">
+          📦 Save Posted Orders to New Sheet
+        </button>
       </div>
     </div>
   </div>
@@ -93,7 +113,7 @@
         <tr>
           <th>Type</th>
           <th>Order / PO No</th>
-          <th>Date & Time</th>
+          <th>Date &amp; Time</th>
           <th>Party Details</th>
           <th>Merged Items</th>
           <th>Total Quantities</th>
@@ -113,25 +133,29 @@
   const API_URL = "https://script.google.com/macros/s/AKfycbzyl2ykqWMmmFhm8KH4dYSynxvB1ByYPHg78dEisUMCA8Q1T3_XYxPExQaXRttSeFLMeg/exec";
 
   const USERS = {
-    "ADMIN": { name: "Khushi Painter (Admin)", role: "ADMIN", viewAll: true, canAssign: true },
-    "MANAGER": { name: "Mukesh Shukla (Manager)", role: "MANAGER", viewAll: true, canAssign: true },
-    "PAWAN": { name: "Mr. Pawan Negi", role: "USER", assignKey: "Mr. Pawan Negi", viewAll: false, canAssign: false },
-    "SONU": { name: "Mr. Sonu Chauhan", role: "USER", assignKey: "Mr. Sonu Chauhan", viewAll: false, canAssign: false },
-    "RISHABH": { name: "Mr. Rishabh Jain", role: "USER", assignKey: "Mr. Rishabh Jain", viewAll: false, canAssign: false }
+    "ADMIN":   { name: "Khushi Painter (Admin)",    role: "ADMIN",   viewAll: true,  canAssign: true  },
+    "MANAGER": { name: "Mukesh Shukla (Manager)",   role: "MANAGER", viewAll: true,  canAssign: true  },
+    "PAWAN":   { name: "Mr. Pawan Negi",            role: "USER",    assignKey: "Mr. Pawan Negi",   viewAll: false, canAssign: false },
+    "SONU":    { name: "Mr. Sonu Chauhan",          role: "USER",    assignKey: "Mr. Sonu Chauhan", viewAll: false, canAssign: false },
+    "RISHABH": { name: "Mr. Rishabh Jain",          role: "USER",    assignKey: "Mr. Rishabh Jain", viewAll: false, canAssign: false }
   };
 
+  // Regular assignable executives
   const ASSIGNABLE_USERS = [
     "Mr. Pawan Negi",
     "Mr. Sonu Chauhan",
     "Mr. Rishabh Jain"
   ];
 
+  // Special value: invoice sent by physical post — no upload required
+  const BY_COURIER = "By Courier";
+
   let rawOrders = [];
   let currentUser = USERS["ADMIN"];
 
   window.onload = function() {
     initAuthAndRenderUI();
-    fetchData(); // Using Standard Robust Fetch
+    fetchData();
   };
 
   function initAuthAndRenderUI() {
@@ -139,11 +163,7 @@
     const userParam = (urlParams.get('user') || '').toUpperCase();
     const authBox = document.getElementById('authContainer');
 
-    if (userParam && USERS[userParam]) {
-      currentUser = USERS[userParam];
-    } else {
-      currentUser = USERS["ADMIN"];
-    }
+    currentUser = (userParam && USERS[userParam]) ? USERS[userParam] : USERS["ADMIN"];
 
     document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
 
@@ -151,19 +171,20 @@
       authBox.innerHTML = `
         <div class="form-group">
           <label>Logged-in Executive:</label>
-          <input type="text" value="${currentUser.name}" disabled style="background:#f1f5f9; font-weight:600; color:var(--primary);" />
-        </div>
-      `;
+          <input type="text" value="${currentUser.name}" disabled
+            style="background:#f1f5f9; font-weight:600; color:var(--primary);" />
+        </div>`;
     } else {
       authBox.innerHTML = `
         <div class="form-group">
           <label>Management View:</label>
           <select id="userSelector" onchange="switchManagementUser(this.value)">
-            <option value="ADMIN" ${currentUser.role === 'ADMIN' ? 'selected' : ''}>Khushi Painter (Admin)</option>
+            <option value="ADMIN"   ${currentUser.role === 'ADMIN'   ? 'selected' : ''}>Khushi Painter (Admin)</option>
             <option value="MANAGER" ${currentUser.role === 'MANAGER' ? 'selected' : ''}>Mukesh Shukla (Manager)</option>
           </select>
-        </div>
-      `;
+        </div>`;
+      // Show "Save Posted Orders" button for management roles
+      document.getElementById('postExportContainer').style.display = 'block';
     }
   }
 
@@ -173,53 +194,56 @@
     renderFilteredData();
   }
 
-  // Standard Fetch Approach
+  // ── Data fetch ──────────────────────────────────────────────────────────────
   async function fetchData() {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '<tr><td colspan="9" class="loader">Fetching data from Google Sheets...</td></tr>';
-    
     try {
-      const response = await fetch(`${API_URL}?action=fetchOrders`, {
-        method: 'GET'
-      });
-      
+      const response = await fetch(`${API_URL}?action=fetchOrders`, { method: 'GET' });
       const result = await response.json();
-      
       if (result && result.success) {
         rawOrders = result.data;
         renderFilteredData();
       } else {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red; padding:20px;">Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
+          Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
       }
     } catch (err) {
       console.error("Fetch Error:", err);
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red; padding:20px;">
-        Failed to load data. <br>
-        <small style="color:#64748b;">Please verify your Google Apps Script deployment is active and set to <b>"Anyone"</b>.</small>
-      </td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
+        Failed to load data.<br>
+        <small style="color:#64748b;">Please verify your Google Apps Script deployment is active
+        and set to <b>"Anyone"</b>.</small></td></tr>`;
     }
   }
 
+  // ── Render table ─────────────────────────────────────────────────────────────
   function renderFilteredData() {
-    const type = document.getElementById('typeFilter').value;
+    const type   = document.getElementById('typeFilter').value;
     const status = document.getElementById('statusFilter').value;
     const search = document.getElementById('searchInput').value.toLowerCase().trim();
 
     const filtered = rawOrders.filter(item => {
+      // Non-admin users only see their own assigned rows
       if (!currentUser.viewAll) {
-        if (!item.assignedTo || item.assignedTo.trim().toLowerCase() !== currentUser.assignKey.toLowerCase()) {
+        if (!item.assignedTo ||
+            item.assignedTo.trim().toLowerCase() !== currentUser.assignKey.toLowerCase()) {
           return false;
         }
       }
-
       if (type !== 'ALL' && item.docType !== type) return false;
-      if (status !== 'ALL' && item.status !== status) return false;
+
+      // "ByCourier" is a special filter — checks assignment, not status field
+      if (status === 'ByCourier') {
+        if (item.assignedTo !== BY_COURIER) return false;
+      } else if (status !== 'ALL') {
+        if (item.status !== status) return false;
+      }
 
       if (search) {
         const str = `${item.docNo} ${item.party} ${item.items} ${item.address}`.toLowerCase();
         if (!str.includes(search)) return false;
       }
-
       return true;
     });
 
@@ -227,7 +251,7 @@
     tbody.innerHTML = '';
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 25px; color:#94a3b8;">
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:25px;color:#94a3b8;">
         ${currentUser.role === 'USER' ? 'No orders assigned to you yet.' : 'No matching orders found.'}
       </td></tr>`;
       return;
@@ -235,28 +259,43 @@
 
     filtered.forEach(item => {
       const tr = document.createElement('tr');
+      const isCourier = item.assignedTo === BY_COURIER;
+
+      if (isCourier) tr.classList.add('courier-row');
+
       const tagClass = item.docType === 'Sales Order' ? 'type-sales' : 'type-dispatch';
 
+      // ── Assigned To cell ──
       let assignHtml = '';
       if (currentUser.canAssign) {
         let options = `<option value="Unassigned" ${item.assignedTo === 'Unassigned' ? 'selected' : ''}>Unassigned</option>`;
         ASSIGNABLE_USERS.forEach(u => {
           options += `<option value="${u}" ${item.assignedTo === u ? 'selected' : ''}>${u}</option>`;
         });
+        // Separator + By Courier option
+        options += `<option disabled>──────────</option>`;
+        options += `<option value="${BY_COURIER}" ${isCourier ? 'selected' : ''}>📮 By Courier (Post)</option>`;
         assignHtml = `<select onchange="updateAssign(${item.rowIndex}, this.value)">${options}</select>`;
       } else {
         assignHtml = `<strong style="color:var(--primary);">${item.assignedTo}</strong>`;
       }
 
+      // ── Action cell ──
       let actionHtml = '';
-      if (item.docLink) {
+      if (isCourier) {
+        // Invoice sent by post — no upload needed
+        actionHtml = `<span class="badge ByCourier">📮 Sent via Post</span>`;
+      } else if (item.docLink) {
         actionHtml = `<a class="link-btn" href="${item.docLink}" target="_blank">📄 View Doc</a>`;
       } else {
         actionHtml = `
-          <input type="file" id="file_${item.rowIndex}" style="width: 140px; font-size:11px;" />
-          <button onclick="uploadDocument(${item.rowIndex})" style="margin-top:4px;">Upload</button>
-        `;
+          <input type="file" id="file_${item.rowIndex}" style="width:140px;font-size:11px;" />
+          <button onclick="uploadDocument(${item.rowIndex})" style="margin-top:4px;">Upload</button>`;
       }
+
+      // Status badge — "By Courier" rows show "Uploaded" (they are done)
+      const statusLabel = isCourier ? 'Uploaded' : item.status;
+      const statusClass = isCourier ? 'Uploaded' : item.status;
 
       tr.innerHTML = `
         <td><span class="badge ${tagClass}">${item.docType}</span></td>
@@ -264,16 +303,18 @@
         <td><small>${item.date}</small></td>
         <td><strong>${item.party}</strong><br><small style="color:#64748b;">${item.address}</small></td>
         <td><div class="items-box">${item.items}</div></td>
-        <td>Ream: ${item.ream}<br>Box: ${item.box} ${item.kg > 0 ? '<br>Kg: ' + item.kg : ''}</td>
+        <td>Ream: ${item.ream}<br>Box: ${item.box}${item.kg > 0 ? '<br>Kg: ' + item.kg : ''}</td>
         <td>${assignHtml}</td>
-        <td><span class="badge ${item.status}">${item.status}</span></td>
+        <td><span class="badge ${statusClass}">${statusLabel}</span></td>
         <td id="act_${item.rowIndex}">${actionHtml}</td>
       `;
       tbody.appendChild(tr);
     });
   }
 
+  // ── Assign order (with By Courier support) ───────────────────────────────────
   async function updateAssign(rowIndex, assignTo) {
+    const byPost = (assignTo === BY_COURIER);
     try {
       await fetch(API_URL, {
         method: 'POST',
@@ -281,16 +322,26 @@
         body: JSON.stringify({
           action: 'assignOrder',
           rowIndex: rowIndex,
-          assignTo: assignTo
+          assignTo: assignTo,
+          byPost: byPost       // Apps Script must set Status = "Uploaded" when byPost === true
         })
       });
       const target = rawOrders.find(o => o.rowIndex === rowIndex);
-      if (target) target.assignedTo = assignTo;
+      if (target) {
+        target.assignedTo = assignTo;
+        if (byPost) {
+          // Mark complete locally — no upload step required
+          target.status  = 'Uploaded';
+          target.docLink = '';   // no Drive link for post orders
+        }
+      }
+      renderFilteredData();
     } catch(e) {
-      alert('Error saving assignment');
+      alert('Error saving assignment. Please try again.');
     }
   }
 
+  // ── Upload document (unchanged flow) ─────────────────────────────────────────
   function uploadDocument(rowIndex) {
     const fileInput = document.getElementById(`file_${rowIndex}`);
     if (!fileInput.files.length) {
@@ -299,7 +350,7 @@
     }
     const file = fileInput.files[0];
     const actionCell = document.getElementById(`act_${rowIndex}`);
-    actionCell.innerHTML = '<small style="color:var(--primary); font-weight:bold;">Uploading to Drive...</small>';
+    actionCell.innerHTML = '<small style="color:var(--primary);font-weight:bold;">Uploading to Drive...</small>';
 
     const reader = new FileReader();
     reader.onload = async function(e) {
@@ -319,10 +370,7 @@
         const res = await response.json();
         if (res.success) {
           const target = rawOrders.find(o => o.rowIndex === rowIndex);
-          if (target) {
-            target.status = 'Uploaded';
-            target.docLink = res.url;
-          }
+          if (target) { target.status = 'Uploaded'; target.docLink = res.url; }
           renderFilteredData();
         } else {
           alert('Upload failed: ' + res.error);
@@ -334,6 +382,42 @@
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  // ── Save all "By Courier" orders to a new sheet (ADMIN / MANAGER only) ───────
+  async function savePostedOrdersToSheet() {
+    const postedOrders = rawOrders.filter(o => o.assignedTo === BY_COURIER);
+    if (postedOrders.length === 0) {
+      alert('No "By Courier" orders found to save.');
+      return;
+    }
+    if (!confirm(`Save ${postedOrders.length} courier order(s) to a new sheet?\n\nThis will copy all "By Courier" rows into a separate "Posted Orders" sheet in Google Sheets.`)) return;
+
+    const btn = document.querySelector('.btn-post-export');
+    btn.disabled = true;
+    btn.textContent = '⏳ Saving...';
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'savePostedOrders',
+          orders: postedOrders
+        })
+      });
+      const res = await response.json();
+      if (res.success) {
+        alert(`✅ ${postedOrders.length} order(s) saved to the "${res.sheetName || 'Posted Orders'}" sheet successfully!`);
+      } else {
+        alert('Error: ' + (res.error || 'Unknown error from server.'));
+      }
+    } catch (e) {
+      alert('Server communication error. Please try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📦 Save Posted Orders to New Sheet';
+    }
   }
 </script>
 
