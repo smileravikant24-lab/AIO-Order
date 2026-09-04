@@ -75,17 +75,16 @@ function syncBothSheetsSeparately() {
   writeGroupToMaster(master, s2Group, existingMap, "Direct Dispatch");
 }
 
-// Invoice No. is at column 56 (index 55) in Sheet1 FMS.
-// Sales Person is at column 7 (index 6).
+// Sheet1 FMS: Invoice No. at index 56 (r[56]), Sales Person at index 7 (r[7]).
 function processSheet1Data(group) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET1_ID).getSheetByName("FMS");
     const lastRow = sheet.getLastRow();
     if (lastRow < 7) return;
-    const data = sheet.getRange(7, 1, lastRow - 6, 56).getValues();
+    const data = sheet.getRange(7, 1, lastRow - 6, 57).getValues();
 
     data.forEach(r => {
-      const invoiceNo = String(r[55]).trim(); // column 56
+      const invoiceNo = String(r[56]).trim(); // index 56
       if (!invoiceNo) return;
 
       if (!group[invoiceNo]) {
@@ -94,7 +93,7 @@ function processSheet1Data(group) {
           date: r[0],
           party: r[2],
           address: `${r[4]} (GST: ${r[3]})`,
-          salesPerson: String(r[6] || "").trim(), // column 7
+          salesPerson: String(r[7] || "").trim(), // index 7
           items: []
         };
       }
@@ -107,17 +106,16 @@ function processSheet1Data(group) {
   } catch (e) { Logger.log("S1 Err: " + e.message); }
 }
 
-// Invoice No. is at column 67 (index 66) in Sheet2 FMS.
-// Sales Person is at column 25 (index 24).
+// Sheet2 FMS: Invoice No. at index 67 (r[67]), Sales Person at index 25 (r[25]).
 function processSheet2Data(group) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET2_ID).getSheetByName("FMS");
     const lastRow = sheet.getLastRow();
     if (lastRow < 7) return;
-    const data = sheet.getRange(7, 1, lastRow - 6, 67).getValues();
+    const data = sheet.getRange(7, 1, lastRow - 6, 68).getValues();
 
     data.forEach(r => {
-      const invoiceNo = String(r[66]).trim(); // column 67
+      const invoiceNo = String(r[67]).trim(); // index 67
       if (!invoiceNo) return;
 
       if (!group[invoiceNo]) {
@@ -126,7 +124,7 @@ function processSheet2Data(group) {
           date: r[0],
           party: r[2],
           address: r[3],
-          salesPerson: String(r[24] || "").trim(), // column 25
+          salesPerson: String(r[25] || "").trim(), // index 25
           items: []
         };
       }
