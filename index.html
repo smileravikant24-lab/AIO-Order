@@ -27,10 +27,10 @@
     select, input { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; outline: none; background: white; }
     select:focus, input:focus { border-color: var(--primary); }
 
-    .table-container { overflow-x: auto; background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .table-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
-    th { background: #f1f5f9; font-weight: 600; color: #334155; position: sticky; top: var(--filter-height, 0px); z-index: 10; }
+    th { background: #f1f5f9; font-weight: 600; color: #334155; position: sticky; top: 0; z-index: 10; }
     tr:hover { background: #f8fafc; }
 
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
@@ -164,16 +164,19 @@
     return isNaN(d) ? null : d;
   }
 
-  function updateStickyHeaderOffset() {
-    const card = document.querySelector('.sticky-filter');
-    if (card) document.documentElement.style.setProperty('--filter-height', card.offsetHeight + 'px');
+  function updateTableHeight() {
+    const tc = document.querySelector('.table-container');
+    if (!tc) return;
+    const top = tc.getBoundingClientRect().top + window.scrollY;
+    const maxH = window.innerHeight - top - 20;
+    tc.style.maxHeight = Math.max(maxH, 300) + 'px';
   }
 
   window.onload = function() {
     initAuthAndRenderUI();
-    updateStickyHeaderOffset();
     fetchData();
-    window.addEventListener('resize', updateStickyHeaderOffset);
+    updateTableHeight();
+    window.addEventListener('resize', updateTableHeight);
   };
 
   function initAuthAndRenderUI() {
@@ -220,7 +223,6 @@
       if (result && result.success) {
         rawOrders = result.data;
         renderFilteredData();
-        updateStickyHeaderOffset();
       } else {
         tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:red;padding:20px;">
           Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
