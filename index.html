@@ -112,18 +112,20 @@
       <thead>
         <tr>
           <th>Type</th>
-          <th>Order / PO No</th>
+          <th>Invoice No.</th>
           <th>Date &amp; Time</th>
           <th>Party Details</th>
           <th>Merged Items</th>
-          <th>Total Quantities</th>
+          <th>Sales Person</th>
           <th>Assigned To</th>
+          <th>Party Sign Date</th>
+          <th>Who to Handover Bill</th>
           <th>Status</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody id="tableBody">
-        <tr><td colspan="9" class="loader">Loading records from Google Sheets...</td></tr>
+        <tr><td colspan="11" class="loader">Loading records from Google Sheets...</td></tr>
       </tbody>
     </table>
   </div>
@@ -149,6 +151,8 @@
 
   // Special value: invoice sent by physical post — no upload required
   const BY_COURIER = "By Courier";
+
+  const HANDOVER_OPTIONS = ["Mr. Mukesh", "Mr. Pawan", "Mr. Rishabh", "Mr. Sonu"];
 
   let rawOrders = [];
   let currentUser = USERS["ADMIN"];
@@ -197,7 +201,7 @@
   // ── Data fetch ──────────────────────────────────────────────────────────────
   async function fetchData() {
     const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '<tr><td colspan="9" class="loader">Fetching data from Google Sheets...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="loader">Fetching data from Google Sheets...</td></tr>';
     try {
       const response = await fetch(`${API_URL}?action=fetchOrders`, { method: 'GET' });
       const result = await response.json();
@@ -205,12 +209,12 @@
         rawOrders = result.data;
         renderFilteredData();
       } else {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:red;padding:20px;">
           Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
       }
     } catch (err) {
       console.error("Fetch Error:", err);
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:red;padding:20px;">
         Failed to load data.<br>
         <small style="color:#64748b;">Please verify your Google Apps Script deployment is active
         and set to <b>"Anyone"</b>.</small></td></tr>`;
@@ -251,7 +255,7 @@
     tbody.innerHTML = '';
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:25px;color:#94a3b8;">
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:25px;color:#94a3b8;">
         ${currentUser.role === 'USER' ? 'No orders assigned to you yet.' : 'No matching orders found.'}
       </td></tr>`;
       return;
@@ -297,14 +301,30 @@
       const statusLabel = isCourier ? 'Uploaded' : item.status;
       const statusClass = isCourier ? 'Uploaded' : item.status;
 
+      // ── Party Sign Date cell ──
+      const signDateHtml = `
+        <input type="date" value="${item.partySignDate || ''}"
+          style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid #e2e8f0;width:130px;"
+          onchange="updateHandoverInfo(${item.rowIndex}, 'partySignDate', this.value)" />`;
+
+      // ── Who to Handover Bill cell ──
+      let handoverOpts = `<option value="">-- Select --</option>`;
+      HANDOVER_OPTIONS.forEach(name => {
+        handoverOpts += `<option value="${name}" ${item.handoverBill === name ? 'selected' : ''}>${name}</option>`;
+      });
+      const handoverHtml = `<select style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid #e2e8f0;"
+        onchange="updateHandoverInfo(${item.rowIndex}, 'handoverBill', this.value)">${handoverOpts}</select>`;
+
       tr.innerHTML = `
         <td><span class="badge ${tagClass}">${item.docType}</span></td>
         <td><strong>${item.docNo}</strong></td>
         <td><small>${item.date}</small></td>
         <td><strong>${item.party}</strong><br><small style="color:#64748b;">${item.address}</small></td>
         <td><div class="items-box">${item.items}</div></td>
-        <td>Ream: ${item.ream}<br>Box: ${item.box}${item.kg > 0 ? '<br>Kg: ' + item.kg : ''}</td>
+        <td><small style="color:#334155;font-weight:600;">${item.salesPerson || '—'}</small></td>
         <td>${assignHtml}</td>
+        <td>${signDateHtml}</td>
+        <td>${handoverHtml}</td>
         <td><span class="badge ${statusClass}">${statusLabel}</span></td>
         <td id="act_${item.rowIndex}">${actionHtml}</td>
       `;
@@ -382,6 +402,24 @@
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  // ── Update Party Sign Date / Who to Handover Bill ────────────────────────────
+  async function updateHandoverInfo(rowIndex, field, value) {
+    const payload = { action: 'updateHandoverInfo', rowIndex: rowIndex };
+    if (field === 'partySignDate') payload.partySignDate = value;
+    if (field === 'handoverBill')  payload.handoverBill  = value;
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const target = rawOrders.find(o => o.rowIndex === rowIndex);
+      if (target) target[field] = value;
+    } catch(e) {
+      alert('Error saving. Please try again.');
+    }
   }
 
   // ── Save all "By Courier" orders to a new sheet (ADMIN / MANAGER only) ───────
