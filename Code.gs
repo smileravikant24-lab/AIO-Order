@@ -122,9 +122,9 @@ function processSheet2Data(group) {
         group[invoiceNo] = {
           docNo: invoiceNo,
           date: r[0],
-          party: r[2],
-          address: r[3],
-          salesPerson: String(r[25] || "").trim(), // index 25
+          party: String(r[20] || "").trim(),       // Firm Name at column U (index 20)
+          address: String(r[3] || "").trim(),      // Dispatch Address at column D (index 3)
+          salesPerson: String(r[25] || "").trim(), // Sales Person at column Z (index 25)
           items: []
         };
       }
