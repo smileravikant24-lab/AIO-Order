@@ -30,7 +30,7 @@
     .table-container { overflow-x: auto; background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
-    th { background: #f1f5f9; font-weight: 600; color: #334155; position: sticky; top: 0; }
+    th { background: #f1f5f9; font-weight: 600; color: #334155; position: sticky; top: var(--filter-height, 0px); z-index: 10; }
     tr:hover { background: #f8fafc; }
 
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
@@ -150,9 +150,30 @@
   let rawOrders = [];
   let currentUser = USERS["ADMIN"];
 
+  // Date cutoffs: Sales Order >= Sep 1 2026, Direct Dispatch >= Aug 1 2026
+  const DATE_CUTOFF = {
+    'Sales Order':     new Date(2026, 8, 1),
+    'Direct Dispatch': new Date(2026, 7, 1)
+  };
+
+  function parseItemDate(str) {
+    if (!str) return null;
+    const m = String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+    const d = new Date(str);
+    return isNaN(d) ? null : d;
+  }
+
+  function updateStickyHeaderOffset() {
+    const card = document.querySelector('.sticky-filter');
+    if (card) document.documentElement.style.setProperty('--filter-height', card.offsetHeight + 'px');
+  }
+
   window.onload = function() {
     initAuthAndRenderUI();
+    updateStickyHeaderOffset();
     fetchData();
+    window.addEventListener('resize', updateStickyHeaderOffset);
   };
 
   function initAuthAndRenderUI() {
@@ -199,6 +220,7 @@
       if (result && result.success) {
         rawOrders = result.data;
         renderFilteredData();
+        updateStickyHeaderOffset();
       } else {
         tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:red;padding:20px;">
           Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
@@ -227,6 +249,13 @@
         }
       }
       if (type !== 'ALL' && item.docType !== type) return false;
+
+      // Date cutoff filter
+      const cutoff = DATE_CUTOFF[item.docType];
+      if (cutoff) {
+        const d = parseItemDate(item.date);
+        if (d && d < cutoff) return false;
+      }
 
       // "ByCourier" is a special filter — checks assignment, not status field
       if (status === 'ByCourier') {
