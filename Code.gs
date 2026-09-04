@@ -327,6 +327,60 @@ function savePostedOrders(orders) {
   }
 }
 
+// Run this ONCE to migrate existing Master_FMS data to the new column layout.
+// Old: DocType | Order/PO No | Date | Party | Address | Items | TotalRem | TotalBox | TotalKg | AssignedTo | DocStatus | DocLink
+// New: DocType | Invoice No. | Date | Party | Address | Items | SalesPerson | AssignedTo | SignDate | HandoverBill | DocStatus | DocLink
+function rearrangeMasterSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let master = ss.getSheetByName(MASTER_TAB);
+  if (!master) { setupMasterHeaders(); return; }
+
+  const allData = master.getDataRange().getValues();
+
+  // If sheet is empty or only has header, just reset headers
+  if (allData.length <= 1) { setupMasterHeaders(); return; }
+
+  // Check if already in new layout (7th header = "Sales Person")
+  if (String(allData[0][6]).trim() === "Sales Person") {
+    Logger.log("Sheet already in new layout. Nothing to do.");
+    return;
+  }
+
+  const newHeaders = [
+    "Doc Type", "Invoice No.", "Date & Time", "Party / Firm Name",
+    "Address / Location", "Merged Items & Details", "Sales Person",
+    "Assigned To", "Party Sign Date", "Who to Handover Bill", "Doc Status", "Uploaded Doc Link"
+  ];
+
+  const newRows = [newHeaders];
+  for (let i = 1; i < allData.length; i++) {
+    const r = allData[i];
+    newRows.push([
+      r[0],   // Doc Type
+      r[1],   // Order/PO No → Invoice No.
+      r[2],   // Date & Time
+      r[3],   // Party / Firm Name
+      r[4],   // Address / Location
+      r[5],   // Merged Items & Details
+      "",     // Sales Person (new — empty; will fill on next sync)
+      r[9],   // Assigned To (was index 9 / col 10)
+      "",     // Party Sign Date (new — empty)
+      "",     // Who to Handover Bill (new — empty)
+      r[10],  // Doc Status (was index 10 / col 11)
+      r[11]   // Uploaded Doc Link (was index 11 / col 12)
+    ]);
+  }
+
+  master.clear();
+  master.getRange(1, 1, newRows.length, 12).setValues(newRows);
+  master.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#cfe2f3");
+  master.setFrozenRows(1);
+
+  if (newRows.length > 1) _applyHandoverValidation(master, 2, 1000);
+
+  Logger.log("Done. " + (newRows.length - 1) + " rows migrated to new layout.");
+}
+
 function grantDrivePermission() {
   DriveApp.getFolderById("1uxvFTunw21NblGfgLUB8eSzr_ybviQvC");
   Logger.log("Drive Permission Granted!");
