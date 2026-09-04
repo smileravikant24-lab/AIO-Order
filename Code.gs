@@ -75,16 +75,16 @@ function syncBothSheetsSeparately() {
   writeGroupToMaster(master, s2Group, existingMap, "Direct Dispatch");
 }
 
-// Sheet1 FMS: Invoice No. at index 56 (r[56]), Sales Person at index 7 (r[7]).
+// Sheet1 FMS: Invoice No. at column BF = index 57 (r[57]), Sales Person at column H = index 7 (r[7]).
 function processSheet1Data(group) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET1_ID).getSheetByName("FMS");
     const lastRow = sheet.getLastRow();
     if (lastRow < 7) return;
-    const data = sheet.getRange(7, 1, lastRow - 6, 57).getValues();
+    const data = sheet.getRange(7, 1, lastRow - 6, 58).getValues();
 
     data.forEach(r => {
-      const invoiceNo = String(r[56]).trim(); // index 56
+      const invoiceNo = String(r[57]).trim(); // column BF = index 57
       if (!invoiceNo) return;
 
       if (!group[invoiceNo]) {
@@ -93,7 +93,7 @@ function processSheet1Data(group) {
           date: r[0],
           party: r[2],
           address: `${r[4]} (GST: ${r[3]})`,
-          salesPerson: String(r[7] || "").trim(), // index 7
+          salesPerson: String(r[7] || "").trim(), // column H = index 7
           items: []
         };
       }
@@ -106,16 +106,16 @@ function processSheet1Data(group) {
   } catch (e) { Logger.log("S1 Err: " + e.message); }
 }
 
-// Sheet2 FMS: Invoice No. at column BE = index 56 (r[56]), Sales Person at column Z = index 25 (r[25]).
+// Sheet2 FMS: Invoice No. at column BO = index 66 (r[66]), Sales Person at column Z = index 25 (r[25]).
 function processSheet2Data(group) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET2_ID).getSheetByName("FMS");
     const lastRow = sheet.getLastRow();
     if (lastRow < 7) return;
-    const data = sheet.getRange(7, 1, lastRow - 6, 57).getValues();
+    const data = sheet.getRange(7, 1, lastRow - 6, 67).getValues();
 
     data.forEach(r => {
-      const invoiceNo = String(r[56]).trim(); // column BE = index 56
+      const invoiceNo = String(r[66]).trim(); // column BO = index 66
       if (!invoiceNo) return;
 
       if (!group[invoiceNo]) {
