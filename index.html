@@ -53,6 +53,9 @@
     /* Courier row highlight */
     tr.courier-row { background: #fff7ed !important; }
     tr.courier-row:hover { background: #ffedd5 !important; }
+
+    /* Sticky filter bar */
+    .sticky-filter { position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
   </style>
 </head>
 <body>
@@ -66,7 +69,7 @@
     <div id="userBadge" class="user-badge">Role: Authenticating...</div>
   </div>
 
-  <div class="card">
+  <div class="card sticky-filter">
     <div class="filters">
       <div id="authContainer"></div>
 
