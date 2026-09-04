@@ -381,6 +381,52 @@ function rearrangeMasterSheet() {
   Logger.log("Done. " + (newRows.length - 1) + " rows migrated to new layout.");
 }
 
+// Migrate Posted_Orders sheet to new column layout (run once).
+function migratePostedOrdersSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = "Posted_Orders";
+  const master = ss.getSheetByName(sheetName);
+  if (!master) { Logger.log("Posted_Orders sheet not found."); return; }
+
+  const allData = master.getDataRange().getValues();
+  if (allData.length <= 1) { Logger.log("Sheet empty, nothing to migrate."); return; }
+
+  // Already in new layout?
+  if (String(allData[0][6]).trim() === "Sales Person") {
+    Logger.log("Posted_Orders already in new layout."); return;
+  }
+
+  const newHeaders = [
+    "Doc Type", "Invoice No.", "Date & Time", "Party / Firm Name",
+    "Address / Location", "Merged Items & Details", "Sales Person",
+    "Assigned To", "Party Sign Date", "Who to Handover Bill", "Doc Status", "Saved On"
+  ];
+
+  // Old: DocType|Order/PO No|Date|Party|Address|Items|TotalRem|TotalBox|TotalKg|AssignedTo|DocStatus|SavedOn
+  // New: DocType|Invoice No.|Date|Party|Address|Items|SalesPerson|AssignedTo|SignDate|HandoverBill|DocStatus|SavedOn
+  const newRows = [newHeaders];
+  for (let i = 1; i < allData.length; i++) {
+    const r = allData[i];
+    newRows.push([
+      r[0], r[1], r[2], r[3], r[4], r[5],
+      "",    // Sales Person (new — empty)
+      r[9],  // Assigned To (was index 9)
+      "",    // Party Sign Date (new — empty)
+      "",    // Who to Handover Bill (new — empty)
+      r[10], // Doc Status (was index 10)
+      r[11]  // Saved On (was index 11)
+    ]);
+  }
+
+  master.clear();
+  master.getRange(1, 1, newRows.length, 12).setValues(newRows);
+  master.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#fce8d3");
+  master.setFrozenRows(1);
+  if (newRows.length > 1) _applyHandoverValidation(master, 2, 1000);
+
+  Logger.log("Posted_Orders migrated. " + (newRows.length - 1) + " rows done.");
+}
+
 function grantDrivePermission() {
   DriveApp.getFolderById("1uxvFTunw21NblGfgLUB8eSzr_ybviQvC");
   Logger.log("Drive Permission Granted!");
