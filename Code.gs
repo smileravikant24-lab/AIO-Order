@@ -106,16 +106,16 @@ function processSheet1Data(group) {
   } catch (e) { Logger.log("S1 Err: " + e.message); }
 }
 
-// Sheet2 FMS: Invoice No. at index 67 (r[67]), Sales Person at index 25 (r[25]).
+// Sheet2 FMS: Invoice No. at column BE = index 56 (r[56]), Sales Person at column Z = index 25 (r[25]).
 function processSheet2Data(group) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET2_ID).getSheetByName("FMS");
     const lastRow = sheet.getLastRow();
     if (lastRow < 7) return;
-    const data = sheet.getRange(7, 1, lastRow - 6, 68).getValues();
+    const data = sheet.getRange(7, 1, lastRow - 6, 57).getValues();
 
     data.forEach(r => {
-      const invoiceNo = String(r[67]).trim(); // index 67
+      const invoiceNo = String(r[56]).trim(); // column BE = index 56
       if (!invoiceNo) return;
 
       if (!group[invoiceNo]) {
