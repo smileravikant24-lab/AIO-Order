@@ -75,16 +75,16 @@ function syncBothSheetsSeparately() {
   writeGroupToMaster(master, s2Group, existingMap, "Direct Dispatch");
 }
 
-// Sheet1 FMS: Invoice No. at column BF = index 57 (r[57]), Sales Person at column H = index 7 (r[7]).
+// Sheet1 FMS: Invoice No. at column BE = index 56 (r[56]), Sales Person at column H = index 7 (r[7]).
 function processSheet1Data(group) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET1_ID).getSheetByName("FMS");
     const lastRow = sheet.getLastRow();
     if (lastRow < 7) return;
-    const data = sheet.getRange(7, 1, lastRow - 6, 58).getValues();
+    const data = sheet.getRange(7, 1, lastRow - 6, 57).getValues();
 
     data.forEach(r => {
-      const invoiceNo = String(r[57]).trim(); // column BF = index 57
+      const invoiceNo = String(r[56]).trim(); // column BE = index 56
       if (!invoiceNo) return;
 
       if (!group[invoiceNo]) {
