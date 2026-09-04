@@ -16,8 +16,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
     .container { max-width: 1400px; margin: 0 auto; }
-    .header { background: var(--card-bg); padding: 18px 20px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-    .header h1 { font-size: 19px; color: var(--primary); }
     .user-badge { background: #dbeafe; color: #1e40af; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1px solid #bfdbfe; }
 
     .card { background: var(--card-bg); padding: 16px 20px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; }
@@ -61,14 +59,6 @@
 <body>
 
 <div class="container">
-  <div class="header">
-    <div>
-      <h1>Order &amp; Dispatch Invoice Portal</h1>
-      <small style="color: #64748b;">Consolidated Order Dispatch &amp; Documentation System</small>
-    </div>
-    <div id="userBadge" class="user-badge">Role: Authenticating...</div>
-  </div>
-
   <div class="card sticky-filter">
     <div class="filters">
       <div id="authContainer"></div>
@@ -97,6 +87,7 @@
         <input type="text" id="searchInput" placeholder="Search PO, Party name..." onkeyup="renderFilteredData()" />
       </div>
 
+      <div id="userBadge" class="user-badge" style="margin-left:auto;white-space:nowrap;">Role: Authenticating...</div>
     </div>
   </div>
 
