@@ -22,8 +22,8 @@
     .filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
     .form-group { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
     .form-group label { font-size: 12px; font-weight: 600; color: #475569; }
-    select, input { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; outline: none; background: white; }
-    select:focus, input:focus { border-color: var(--primary); }
+    select, input[type="text"], input[type="tel"], input[type="date"], textarea { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; outline: none; background: white; }
+    select:focus, input:focus, textarea:focus { border-color: var(--primary); }
 
     .table-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -44,7 +44,7 @@
     button:hover { background: var(--primary-hover); }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.link-btn { color: var(--primary); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .link-btn { color: var(--primary); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
     .link-btn:hover { text-decoration: underline; }
     .loader { text-align: center; padding: 30px; font-weight: 600; color: #64748b; }
 
@@ -52,64 +52,161 @@
     tr.courier-row { background: #fff7ed !important; }
     tr.courier-row:hover { background: #ffedd5 !important; }
 
-    /* Sticky filter bar */
-    .sticky-filter { position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
+    /* Sticky top bar */
+    .sticky-top { position: sticky; top: 0; z-index: 200; }
+
+    /* Tab navigation */
+    .tab-nav { background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; padding: 8px 16px; display: flex; gap: 8px; align-items: center; }
+    .tab-btn { background: transparent; color: #64748b; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.15s, color 0.15s; }
+    .tab-btn:hover { background: #f1f5f9; color: var(--primary); }
+    .tab-btn.active { background: var(--primary); color: white; }
+
+    /* Sticky filter bar (orders) */
+    .sticky-filter { position: sticky; top: 62px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
+
+    /* Sample form */
+    .sample-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .sample-form-grid .full-width { grid-column: 1 / -1; }
+    textarea.remarks-box { width: 100%; min-height: 80px; resize: vertical; font-family: inherit; }
+    .submit-row { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+    .submit-success { color: #166534; font-size: 13px; font-weight: 600; background: #dcfce7; padding: 6px 14px; border-radius: 6px; display: none; }
+
+    /* Sample table container */
+    .sample-table-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 320px); background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="card sticky-filter">
-    <div class="filters">
-      <div id="authContainer"></div>
 
-      <div class="form-group">
-        <label>Filter By Doc Type:</label>
-        <select id="typeFilter" onchange="renderFilteredData()">
-          <option value="ALL">All Types (Sales + Dispatch)</option>
-          <option value="Sales Order">Sales Order (Form 1)</option>
-          <option value="Direct Dispatch">Direct Dispatch (Form 2)</option>
-        </select>
+  <!-- ── Tab Navigation (sticky) ── -->
+  <div class="tab-nav sticky-top">
+    <button class="tab-btn active" id="tab-orders" onclick="switchTab('orders')">📋 Orders</button>
+    <button class="tab-btn" id="tab-sample" onclick="switchTab('sample')">🧪 Sample</button>
+    <div id="userBadge" class="user-badge" style="margin-left:auto;white-space:nowrap;">Role: Authenticating...</div>
+  </div>
+
+  <!-- ══════════════════════ ORDERS TAB ══════════════════════ -->
+  <div id="orders-tab">
+    <div class="card sticky-filter">
+      <div class="filters">
+        <div id="authContainer"></div>
+
+        <div class="form-group">
+          <label>Filter By Doc Type:</label>
+          <select id="typeFilter" onchange="renderFilteredData()">
+            <option value="ALL">All Types (Sales + Dispatch)</option>
+            <option value="Sales Order">Sales Order (Form 1)</option>
+            <option value="Direct Dispatch">Direct Dispatch (Form 2)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Filter By Status:</label>
+          <select id="statusFilter" onchange="renderFilteredData()">
+            <option value="ALL">All Status</option>
+            <option value="Pending">Pending Only</option>
+            <option value="Uploaded">Uploaded Only</option>
+            <option value="ByCourier">By Courier (Post) Only</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="flex-grow: 1;">
+          <label>Search Order / Party / Items:</label>
+          <input type="text" id="searchInput" placeholder="Search PO, Party name..." onkeyup="renderFilteredData()" />
+        </div>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label>Filter By Status:</label>
-        <select id="statusFilter" onchange="renderFilteredData()">
-          <option value="ALL">All Status</option>
-          <option value="Pending">Pending Only</option>
-          <option value="Uploaded">Uploaded Only</option>
-          <option value="ByCourier">By Courier (Post) Only</option>
-        </select>
-      </div>
-
-      <div class="form-group" style="flex-grow: 1;">
-        <label>Search Order / Party / Items:</label>
-        <input type="text" id="searchInput" placeholder="Search PO, Party name..." onkeyup="renderFilteredData()" />
-      </div>
-
-      <div id="userBadge" class="user-badge" style="margin-left:auto;white-space:nowrap;">Role: Authenticating...</div>
+    <div class="table-container" id="ordersTableContainer">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Invoice No.</th>
+            <th>Date &amp; Time</th>
+            <th>Party Details</th>
+            <th>Merged Items</th>
+            <th>Sales Person</th>
+            <th>Assigned To</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="9" class="loader">Loading records from Google Sheets...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Invoice No.</th>
-          <th>Date &amp; Time</th>
-          <th>Party Details</th>
-          <th>Merged Items</th>
-          <th>Sales Person</th>
-          <th>Assigned To</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody">
-        <tr><td colspan="9" class="loader">Loading records from Google Sheets...</td></tr>
-      </tbody>
-    </table>
+  <!-- ══════════════════════ SAMPLE TAB ══════════════════════ -->
+  <div id="sample-tab" style="display:none;">
+
+    <!-- Sample Entry Form -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;color:var(--primary);margin-bottom:16px;">New Sample Entry</div>
+      <div class="sample-form-grid">
+        <div class="form-group">
+          <label>Party Name *</label>
+          <input type="text" id="s_partyName" placeholder="Enter party name" />
+        </div>
+        <div class="form-group">
+          <label>Location *</label>
+          <input type="text" id="s_location" placeholder="City / Area" />
+        </div>
+        <div class="form-group">
+          <label>Contact Person</label>
+          <input type="text" id="s_contactPerson" placeholder="Contact person name" />
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="s_phone" placeholder="Mobile / landline" />
+        </div>
+        <div class="form-group">
+          <label>Send By (Name) *</label>
+          <select id="s_sendName">
+            <option value="">-- Select --</option>
+            <option value="Mr. Pawan Negi">Mr. Pawan Negi</option>
+            <option value="Mr. Sonu Chauhan">Mr. Sonu Chauhan</option>
+            <option value="Mr. Rishabh Jain">Mr. Rishabh Jain</option>
+            <option value="Mr. Mukesh Shukla">Mr. Mukesh Shukla</option>
+            <option value="Mr. Pranav Satija">Mr. Pranav Satija</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label>Remarks / Sample Details</label>
+          <textarea class="remarks-box" id="s_remarks" placeholder="Describe the sample being sent — paper type, size, quantity, purpose, etc."></textarea>
+        </div>
+      </div>
+      <div class="submit-row">
+        <span class="submit-success" id="s_success">✔ Sample saved successfully!</span>
+        <button onclick="submitSample()" id="s_submitBtn" style="padding:9px 24px;font-size:13px;">Submit Sample</button>
+      </div>
+    </div>
+
+    <!-- Sample Records Table -->
+    <div style="font-size:14px;font-weight:700;color:#334155;margin-bottom:10px;padding-left:2px;">Sample Records</div>
+    <div class="sample-table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date &amp; Time</th>
+            <th>Party Name</th>
+            <th>Location</th>
+            <th>Contact Person</th>
+            <th>Phone</th>
+            <th>Send By</th>
+            <th>Remarks / Details</th>
+          </tr>
+        </thead>
+        <tbody id="sampleTableBody">
+          <tr><td colspan="8" class="loader">Loading sample records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
 </div>
 
@@ -124,22 +221,20 @@
     "RISHABH": { name: "Mr. Rishabh Jain",          role: "USER",    assignKey: "Mr. Rishabh Jain", viewAll: false, canAssign: false }
   };
 
-  // Regular assignable executives
   const ASSIGNABLE_USERS = [
     "Mr. Pawan Negi",
     "Mr. Sonu Chauhan",
     "Mr. Rishabh Jain"
   ];
 
-  // Special value: invoice sent by physical post — no upload required
   const BY_COURIER = "By Courier";
-
   const HANDOVER_OPTIONS = ["Mr. Mukesh", "Mr. Pawan", "Mr. Rishabh", "Mr. Sonu"];
 
   let rawOrders = [];
+  let rawSamples = [];
   let currentUser = USERS["ADMIN"];
+  let activeTab = 'orders';
 
-  // Date cutoffs: Sales Order >= Aug 31 2026, Direct Dispatch >= Aug 1 2026
   const DATE_CUTOFF = {
     'Sales Order':     new Date(2026, 7, 31),
     'Direct Dispatch': new Date(2026, 7, 1)
@@ -154,11 +249,31 @@
   }
 
   function updateTableHeight() {
-    const tc = document.querySelector('.table-container');
+    const tc = document.getElementById('ordersTableContainer');
     if (!tc) return;
     const top = tc.getBoundingClientRect().top + window.scrollY;
     const maxH = window.innerHeight - top - 20;
     tc.style.maxHeight = Math.max(maxH, 300) + 'px';
+
+    const stc = document.querySelector('.sample-table-container');
+    if (stc) {
+      const stop = stc.getBoundingClientRect().top + window.scrollY;
+      const smaxH = window.innerHeight - stop - 20;
+      stc.style.maxHeight = Math.max(smaxH, 200) + 'px';
+    }
+  }
+
+  // ── Tab switching ────────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('orders-tab').style.display = tab === 'orders' ? '' : 'none';
+    document.getElementById('sample-tab').style.display  = tab === 'sample'  ? '' : 'none';
+    document.getElementById('tab-orders').classList.toggle('active', tab === 'orders');
+    document.getElementById('tab-sample').classList.toggle('active',  tab === 'sample');
+    if (tab === 'sample' && rawSamples.length === 0) {
+      fetchSamples();
+    }
+    updateTableHeight();
   }
 
   window.onload = function() {
@@ -202,7 +317,7 @@
     renderFilteredData();
   }
 
-  // ── Data fetch ──────────────────────────────────────────────────────────────
+  // ── Orders fetch ─────────────────────────────────────────────────────────────
   async function fetchData() {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '<tr><td colspan="9" class="loader">Fetching data from Google Sheets...</td></tr>';
@@ -225,14 +340,111 @@
     }
   }
 
-  // ── Render table ─────────────────────────────────────────────────────────────
+  // ── Samples fetch ────────────────────────────────────────────────────────────
+  async function fetchSamples() {
+    const tbody = document.getElementById('sampleTableBody');
+    tbody.innerHTML = '<tr><td colspan="8" class="loader">Fetching sample records...</td></tr>';
+    try {
+      const response = await fetch(`${API_URL}?action=fetchSamples`, { method: 'GET' });
+      const result = await response.json();
+      if (result && result.success) {
+        rawSamples = result.data || [];
+        renderSampleTable();
+      } else {
+        rawSamples = [];
+        renderSampleTable();
+      }
+    } catch (err) {
+      console.error("Sample fetch error:", err);
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:20px;">Could not load sample records.</td></tr>';
+    }
+  }
+
+  // ── Sample table render ──────────────────────────────────────────────────────
+  function renderSampleTable() {
+    const tbody = document.getElementById('sampleTableBody');
+    if (!rawSamples.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:25px;color:#94a3b8;">No sample records found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    rawSamples.forEach((s, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${rawSamples.length - idx}</strong></td>
+        <td><small>${s.timestamp || '—'}</small></td>
+        <td><strong>${s.partyName || '—'}</strong></td>
+        <td>${s.location || '—'}</td>
+        <td>${s.contactPerson || '—'}</td>
+        <td>${s.phone || '—'}</td>
+        <td><span style="color:var(--primary);font-weight:600;">${s.sendName || '—'}</span></td>
+        <td><div class="items-box">${s.remarks || '—'}</div></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Submit sample ────────────────────────────────────────────────────────────
+  async function submitSample() {
+    const partyName    = document.getElementById('s_partyName').value.trim();
+    const location     = document.getElementById('s_location').value.trim();
+    const contactPerson = document.getElementById('s_contactPerson').value.trim();
+    const phone        = document.getElementById('s_phone').value.trim();
+    const sendName     = document.getElementById('s_sendName').value;
+    const remarks      = document.getElementById('s_remarks').value.trim();
+
+    if (!partyName) { alert('Party Name is required.'); document.getElementById('s_partyName').focus(); return; }
+    if (!location)  { alert('Location is required.');   document.getElementById('s_location').focus();  return; }
+    if (!sendName)  { alert('Please select who is sending the sample.'); document.getElementById('s_sendName').focus(); return; }
+
+    const btn = document.getElementById('s_submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const now = new Date();
+    const timestamp = now.toLocaleDateString('en-IN') + ' ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    const payload = {
+      action: 'submitSample',
+      partyName, location, contactPerson, phone, sendName, remarks, timestamp
+    };
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const res = await response.json();
+      if (res && res.success) {
+        // Prepend to local list for instant update
+        rawSamples.unshift({ partyName, location, contactPerson, phone, sendName, remarks, timestamp });
+        renderSampleTable();
+        // Clear form
+        ['s_partyName','s_location','s_contactPerson','s_phone','s_remarks'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('s_sendName').value = '';
+        // Show success flash
+        const suc = document.getElementById('s_success');
+        suc.style.display = 'inline-block';
+        setTimeout(() => { suc.style.display = 'none'; }, 3000);
+      } else {
+        alert('Error saving sample: ' + (res ? res.error : 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error. Please try again.');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Submit Sample';
+  }
+
+  // ── Render orders table ──────────────────────────────────────────────────────
   function renderFilteredData() {
     const type   = document.getElementById('typeFilter').value;
     const status = document.getElementById('statusFilter').value;
     const search = document.getElementById('searchInput').value.toLowerCase().trim();
 
     const filtered = rawOrders.filter(item => {
-      // Non-admin users only see their own assigned rows
       if (!currentUser.viewAll) {
         if (!item.assignedTo ||
             item.assignedTo.trim().toLowerCase() !== currentUser.assignKey.toLowerCase()) {
@@ -241,14 +453,12 @@
       }
       if (type !== 'ALL' && item.docType !== type) return false;
 
-      // Date cutoff filter
       const cutoff = DATE_CUTOFF[item.docType];
       if (cutoff) {
         const d = parseItemDate(item.date);
         if (d && d < cutoff) return false;
       }
 
-      // "ByCourier" is a special filter — checks assignment, not status field
       if (status === 'ByCourier') {
         if (item.assignedTo !== BY_COURIER) return false;
       } else if (status !== 'ALL') {
@@ -281,7 +491,6 @@
 
       const tagClass = item.docType === 'Sales Order' ? 'type-sales' : 'type-dispatch';
 
-      // ── Assigned To cell ──
       let assignHtml = '';
       if (currentUser.canAssign) {
         let options = `<option value="Unassigned" ${item.assignedTo === 'Unassigned' ? 'selected' : ''}>Unassigned</option>`;
@@ -295,7 +504,6 @@
         assignHtml = `<strong style="color:var(--primary);">${item.assignedTo}</strong>`;
       }
 
-      // ── Action cell ──
       let actionHtml = '';
       if (isCourier) {
         actionHtml = `<span class="badge ByCourier">📮 Sent via Post</span>`;
@@ -307,11 +515,9 @@
           <button onclick="uploadDocument(${item.rowIndex})" style="margin-top:4px;">Upload</button>`;
       }
 
-      // Status badge — "By Courier" rows show "Uploaded" (they are done)
       const statusLabel = isCourier ? 'Uploaded' : item.status;
       const statusClass = isCourier ? 'Uploaded' : item.status;
 
-      // Details toggle button — only for uploaded records
       const detailsBtn = isUploaded
         ? `<br><button id="dtbtn_${item.rowIndex}" onclick="toggleDetail(${item.rowIndex})"
             style="margin-top:5px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;
@@ -332,7 +538,6 @@
       `;
       tbody.appendChild(tr);
 
-      // ── Collapsible detail row for Party Sign Date & Who to Handover Bill ──
       if (isUploaded) {
         const signDateHtml = `
           <input type="date" value="${item.partySignDate || ''}"
@@ -369,7 +574,7 @@
     });
   }
 
-  // ── Assign order — auto-saves to Posted_Orders sheet if By Courier ──────────
+  // ── Assign order ──────────────────────────────────────────────────────────────
   async function updateAssign(rowIndex, assignTo) {
     const byPost = (assignTo === BY_COURIER);
     try {
@@ -385,7 +590,6 @@
         if (byPost) {
           target.status  = 'Uploaded';
           target.docLink = '';
-          // Auto-save this single order to Posted_Orders sheet immediately
           fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -399,7 +603,7 @@
     }
   }
 
-  // ── Upload document (unchanged flow) ─────────────────────────────────────────
+  // ── Upload document ───────────────────────────────────────────────────────────
   function uploadDocument(rowIndex) {
     const fileInput = document.getElementById(`file_${rowIndex}`);
     if (!fileInput.files.length) {
@@ -442,7 +646,7 @@
     reader.readAsDataURL(file);
   }
 
-  // ── Toggle detail row (Party Sign Date / Who to Handover Bill) ───────────────
+  // ── Toggle detail row ─────────────────────────────────────────────────────────
   function toggleDetail(rowIndex) {
     const det = document.getElementById(`det_${rowIndex}`);
     const btn = document.getElementById(`dtbtn_${rowIndex}`);
