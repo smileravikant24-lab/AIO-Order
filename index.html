@@ -225,10 +225,10 @@
             <div id="partyDropdown" class="party-dropdown"></div>
           </div>
 
-          <!-- WMS Location (auto-filled from master) -->
+          <!-- Sales Person -->
           <div class="form-group">
-            <label>WMS Location</label>
-            <input type="text" id="s_location" placeholder="Auto-filled from party master" />
+            <label>Sales Person</label>
+            <input type="text" id="s_salesPerson" placeholder="Sales person name" />
           </div>
 
           <!-- Contact Person -->
@@ -255,15 +255,8 @@
           <!-- Who to Handover Bill (shown when By Person selected) -->
           <div class="form-group" id="senderPersonGroup">
             <label>Who to Handover Bill</label>
-            <datalist id="hdl_sample">
-              <option value="Mr. Pawan Negi"></option>
-              <option value="Mr. Sonu Chauhan"></option>
-              <option value="Mr. Rishabh Jain"></option>
-              <option value="Mr. Mukesh Shukla"></option>
-              <option value="Mr. Pranav Satija"></option>
-            </datalist>
-            <input type="text" id="s_handoverBill" list="hdl_sample"
-              placeholder="Select or type name…" />
+            <input type="text" id="s_handoverBill"
+              placeholder="Type name…" />
           </div>
 
           <!-- Courier fields (shown when courier selected) -->
@@ -315,7 +308,7 @@
             <th>#</th>
             <th>Date &amp; Time</th>
             <th>Party Name</th>
-            <th>WMS Location</th>
+            <th>Sales Person</th>
             <th>Contact Person</th>
             <th>Phone</th>
             <th>Handover / Courier</th>
@@ -515,7 +508,6 @@
 
   function selectParty(name, location) {
     document.getElementById('s_partyName').value = name;
-    document.getElementById('s_location').value  = location;
     document.getElementById('partyDropdown').style.display = 'none';
   }
 
@@ -608,7 +600,7 @@
         <td><strong>${rawSamples.length - idx}</strong></td>
         <td><small>${s.timestamp || '—'}</small></td>
         <td><strong>${s.partyName || '—'}</strong></td>
-        <td>${s.location || '—'}</td>
+        <td>${s.salesPerson || '—'}</td>
         <td>${s.contactPerson || '—'}</td>
         <td>${s.phone || '—'}</td>
         <td>${sendCell}</td>
@@ -622,7 +614,7 @@
   // ── Submit sample ────────────────────────────────────────────────────────────
   async function submitSample() {
     const partyName     = document.getElementById('s_partyName').value.trim();
-    const location      = document.getElementById('s_location').value.trim();
+    const salesPerson   = document.getElementById('s_salesPerson').value.trim();
     const contactPerson = document.getElementById('s_contactPerson').value.trim();
     const phone         = document.getElementById('s_phone').value.trim();
     const sendMode      = document.getElementById('s_sendMode').value;
@@ -665,7 +657,7 @@
 
     const payload = {
       action: 'submitSample',
-      partyName, location, contactPerson, phone,
+      partyName, salesPerson, contactPerson, phone,
       sendMode, sendName: handoverBill, handoverBill, courierDate, courierSender,
       remarks, timestamp,
       fileData, fileName, mimeType
@@ -681,13 +673,13 @@
       if (res && res.success) {
         fileLink = res.fileLink || res.url || '';
         rawSamples.unshift({
-          partyName, location, contactPerson, phone,
+          partyName, salesPerson, contactPerson, phone,
           sendMode, sendName: handoverBill, handoverBill, courierDate, courierSender,
           remarks, timestamp, fileLink
         });
         renderSampleTable();
         // Clear form
-        ['s_partyName','s_location','s_contactPerson','s_phone','s_remarks','s_courierSender','s_handoverBill'].forEach(id => {
+        ['s_partyName','s_salesPerson','s_contactPerson','s_phone','s_remarks','s_courierSender','s_handoverBill'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
         document.getElementById('s_sendMode').value  = 'person';
