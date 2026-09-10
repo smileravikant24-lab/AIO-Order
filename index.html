@@ -84,6 +84,16 @@
     /* Sample table container */
     .sample-table-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 320px); background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 
+    /* ── Toast notifications ── */
+    .toast-container { position: fixed; top: 18px; right: 18px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { padding: 11px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; min-width: 260px; max-width: 360px; box-shadow: 0 4px 16px rgba(0,0,0,0.14); display: flex; align-items: center; gap: 10px; pointer-events: all; animation: toastIn 0.28s cubic-bezier(.4,0,.2,1); }
+    .toast-success { background: #dcfce7; color: #166534; border-left: 4px solid #16a34a; }
+    .toast-error   { background: #fee2e2; color: #991b1b; border-left: 4px solid #dc2626; }
+    .toast-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #d97706; }
+    .toast-info    { background: #dbeafe; color: #1e40af; border-left: 4px solid #2563eb; }
+    @keyframes toastIn  { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes toastOut { to   { transform: translateX(110%); opacity: 0; } }
+
     /* ── Party autocomplete ── */
     .party-suggest-wrap { position: relative; }
     .party-dropdown {
@@ -906,7 +916,7 @@
       }
       renderFilteredData();
     } catch(e) {
-      alert('Error saving assignment. Please try again.');
+      showToast('Error saving assignment. Please try again.', 'error');
     }
   }
 
@@ -916,17 +926,14 @@
     const attDateInput = document.getElementById(`attDate_${rowIndex}`);
     const attDate = attDateInput ? attDateInput.value : '';
     if (!attDate) {
-      alert('Attachment Date is required.\nPlease enter the date before uploading.');
-      if (attDateInput) {
-        attDateInput.style.borderColor = '#ef4444';
-        attDateInput.focus();
-      }
+      showToast('Attachment Date is required before uploading.', 'warning');
+      if (attDateInput) { attDateInput.style.borderColor = '#ef4444'; attDateInput.focus(); }
       return;
     }
 
     const fileInput = document.getElementById(`file_${rowIndex}`);
-    if (!fileInput.files.length) {
-      alert('Please choose a file first.');
+    if (!fileInput || !fileInput.files.length) {
+      showToast('Please choose a file first.', 'warning');
       return;
     }
     const file = fileInput.files[0];
@@ -957,13 +964,14 @@
             target.docLink = res.url;
             target.attachmentDate = attDate;
           }
+          showToast('Document uploaded successfully!', 'success');
           renderFilteredData();
         } else {
-          alert('Upload failed: ' + res.error);
+          showToast('Upload failed: ' + res.error, 'error');
           renderFilteredData();
         }
       } catch (err) {
-        alert('Server communication error.');
+        showToast('Server communication error.', 'error');
         renderFilteredData();
       }
     };
@@ -995,7 +1003,7 @@
       const target = rawOrders.find(o => o.rowIndex === rowIndex);
       if (target) target[field] = value;
     } catch(e) {
-      alert('Error saving. Please try again.');
+      showToast('Error saving. Please try again.', 'error');
     }
   }
 
@@ -1011,12 +1019,12 @@
       if (data.success) {
         const target = rawOrders.find(o => o.rowIndex === rowIndex);
         if (target) { target.attachmentDate = attDate; target.partySignDate = signDate; target.handoverBill = handover; }
-        alert('Saved successfully!');
+        showToast('Saved successfully!', 'success');
       } else {
-        alert('Save failed: ' + (data.error || 'Unknown error'));
+        showToast('Save failed: ' + (data.error || 'Unknown error'), 'error');
       }
     } catch(e) {
-      alert('Error saving. Please try again.');
+      showToast('Error saving. Please try again.', 'error');
     }
   }
 
@@ -1038,24 +1046,60 @@
   }
 
   // ── Remove document — Admin / Manager only ────────────────────────────────────
-  async function removeDocument(rowIndex) {
-    if (!confirm('Remove this document? Status will revert to Pending.')) return;
+  function removeDocument(rowIndex) {
+    const cell = document.getElementById(`act_${rowIndex}`);
+    if (!cell) return;
+    window[`_actBackup_${rowIndex}`] = cell.innerHTML;
+    cell.innerHTML = `
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:7px;padding:8px 10px;">
+        <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:7px;">🗑 Remove document?</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:8px;">Status will revert to Pending.</div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="confirmRemoveDoc(${rowIndex})" style="background:#dc2626;font-size:11px;padding:4px 10px;">Yes, Remove</button>
+          <button onclick="cancelRemoveDoc(${rowIndex})" style="background:#64748b;font-size:11px;padding:4px 10px;">Cancel</button>
+        </div>
+      </div>`;
+  }
+
+  function cancelRemoveDoc(rowIndex) {
+    const cell = document.getElementById(`act_${rowIndex}`);
+    if (cell && window[`_actBackup_${rowIndex}`]) cell.innerHTML = window[`_actBackup_${rowIndex}`];
+  }
+
+  async function confirmRemoveDoc(rowIndex) {
     try {
       const res  = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'removeDoc', rowIndex }) });
       const data = await res.json();
       if (data.success) {
         const target = rawOrders.find(o => o.rowIndex === rowIndex);
         if (target) { target.status = 'Pending'; target.docLink = ''; target.attachmentDate = ''; }
+        showToast('Document removed. Status reverted to Pending.', 'success');
         renderFilteredData();
       } else {
-        alert('Remove failed: ' + (data.error || 'Unknown error'));
+        showToast('Remove failed: ' + (data.error || 'Unknown error'), 'error');
+        cancelRemoveDoc(rowIndex);
       }
     } catch(e) {
-      alert('Error removing document. Please try again.');
+      showToast('Error removing document. Please try again.', 'error');
+      cancelRemoveDoc(rowIndex);
     }
+  }
+
+  // ── Toast notifications ──────────────────────────────────────────────────────
+  function showToast(message, type = 'info', duration = 3200) {
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span style="flex:1;">${message}</span>`;
+    document.getElementById('toastContainer').appendChild(el);
+    setTimeout(() => {
+      el.style.animation = 'toastOut 0.28s cubic-bezier(.4,0,.2,1) forwards';
+      setTimeout(() => el.remove(), 290);
+    }, duration);
   }
 
 </script>
 
+<div id="toastContainer" class="toast-container"></div>
 </body>
 </html>
