@@ -750,9 +750,6 @@
       } else if (item.docLink) {
         // Uploaded: show link and attachment date (if stored)
         actionHtml = `<a class="link-btn" href="${item.docLink}" target="_blank">📄 View Doc</a>`;
-        if (item.attachmentDate) {
-          actionHtml += `<br><small style="color:#475569;font-size:11px;">📅 ${item.attachmentDate}</small>`;
-        }
       } else {
         // Pending: mandatory attachment date + file upload
         actionHtml = `
