@@ -801,12 +801,17 @@
             style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid #c7d2fe;width:135px;"
             onchange="updateHandoverInfo(${item.rowIndex}, 'partySignDate', this.value)" />`;
 
-        let handoverOpts = `<option value="">-- Select --</option>`;
+        let handoverDlOpts = `<option value=""></option>`;
         HANDOVER_OPTIONS.forEach(name => {
-          handoverOpts += `<option value="${name}" ${item.handoverBill === name ? 'selected' : ''}>${name}</option>`;
+          handoverDlOpts += `<option value="${name}"></option>`;
         });
-        const handoverHtml = `<select style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid #c7d2fe;"
-          onchange="updateHandoverInfo(${item.rowIndex}, 'handoverBill', this.value)">${handoverOpts}</select>`;
+        const handoverHtml = `
+          <datalist id="hdl_${item.rowIndex}">${handoverDlOpts}</datalist>
+          <input type="text" list="hdl_${item.rowIndex}"
+            value="${item.handoverBill || ''}"
+            placeholder="Select or type name…"
+            style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid #c7d2fe;width:160px;"
+            onchange="updateHandoverInfo(${item.rowIndex}, 'handoverBill', this.value)" />`;
 
         const detRow = document.createElement('tr');
         detRow.id = `det_${item.rowIndex}`;
