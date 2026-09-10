@@ -73,6 +73,41 @@
 
     /* Sample table container */
     .sample-table-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 320px); background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+    /* ── Party autocomplete ── */
+    .party-suggest-wrap { position: relative; }
+    .party-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: white; border: 1px solid #bfdbfe;
+      border-top: none; border-radius: 0 0 8px 8px;
+      max-height: 190px; overflow-y: auto; z-index: 500;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12); display: none;
+    }
+    .party-opt { padding: 9px 13px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+    .party-opt:hover { background: #eff6ff; }
+    .party-opt:last-child { border-bottom: none; }
+    .party-opt-loc { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    /* ── Courier fields section ── */
+    .courier-fields-wrap {
+      grid-column: 1 / -1;
+      display: none;
+      background: #fff7ed; border: 1px solid #fed7aa;
+      border-radius: 8px; padding: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+    }
+    .courier-fields-wrap.show { display: grid; }
+
+    /* ── Attachment date mandatory highlight ── */
+    .att-date-required { border-color: #fca5a5 !important; }
+
+    /* ── Sample entry blocked (user role) ── */
+    .entry-blocked {
+      text-align: center; padding: 28px; color: #94a3b8;
+      font-size: 14px; font-weight: 600;
+      background: #f8fafc; border-radius: 8px;
+      border: 2px dashed #e2e8f0;
+    }
   </style>
 </head>
 <body>
@@ -143,46 +178,100 @@
   <!-- ══════════════════════ SAMPLE TAB ══════════════════════ -->
   <div id="sample-tab" style="display:none;">
 
-    <!-- Sample Entry Form -->
-    <div class="card">
-      <div style="font-size:15px;font-weight:700;color:var(--primary);margin-bottom:16px;">New Sample Entry</div>
-      <div class="sample-form-grid">
-        <div class="form-group">
-          <label>Party Name *</label>
-          <input type="text" id="s_partyName" placeholder="Enter party name" />
+    <!-- Sample Entry Card (Admin / Manager only) -->
+    <div class="card" id="sampleEntryCard">
+
+      <!-- Entry form (shown for ADMIN / MANAGER) -->
+      <div id="sampleEntryForm">
+        <div style="font-size:15px;font-weight:700;color:var(--primary);margin-bottom:16px;">New Sample Entry</div>
+        <div class="sample-form-grid">
+
+          <!-- Party Name with autocomplete -->
+          <div class="form-group party-suggest-wrap">
+            <label>Party Name * <small style="color:#94a3b8;font-weight:400;">(search from master)</small></label>
+            <input type="text" id="s_partyName" placeholder="Type to search party..."
+              oninput="filterPartyList(this.value)" onblur="hidePartyList()" autocomplete="off" />
+            <div id="partyDropdown" class="party-dropdown"></div>
+          </div>
+
+          <!-- WMS Location (auto-filled from master) -->
+          <div class="form-group">
+            <label>WMS Location</label>
+            <input type="text" id="s_location" placeholder="Auto-filled from party master" />
+          </div>
+
+          <!-- Contact Person -->
+          <div class="form-group">
+            <label>Contact Person</label>
+            <input type="text" id="s_contactPerson" placeholder="Contact person name" />
+          </div>
+
+          <!-- Phone -->
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="s_phone" placeholder="Mobile / landline" />
+          </div>
+
+          <!-- Send Mode -->
+          <div class="form-group">
+            <label>Send Mode *</label>
+            <select id="s_sendMode" onchange="toggleSendMode()">
+              <option value="person">By Person</option>
+              <option value="courier">By Courier (Post)</option>
+            </select>
+          </div>
+
+          <!-- Send By Person (hidden when courier selected) -->
+          <div class="form-group" id="senderPersonGroup">
+            <label>Send By (Name) *</label>
+            <select id="s_sendName">
+              <option value="">-- Select --</option>
+              <option value="Mr. Pawan Negi">Mr. Pawan Negi</option>
+              <option value="Mr. Sonu Chauhan">Mr. Sonu Chauhan</option>
+              <option value="Mr. Rishabh Jain">Mr. Rishabh Jain</option>
+              <option value="Mr. Mukesh Shukla">Mr. Mukesh Shukla</option>
+              <option value="Mr. Pranav Satija">Mr. Pranav Satija</option>
+            </select>
+          </div>
+
+          <!-- Courier fields (shown when courier selected) -->
+          <div id="courierFieldsWrap" class="courier-fields-wrap">
+            <div class="form-group">
+              <label>📮 Courier Date *</label>
+              <input type="date" id="s_courierDate" />
+            </div>
+            <div class="form-group">
+              <label>Sender Name *</label>
+              <input type="text" id="s_courierSender" placeholder="Name of person sending" />
+            </div>
+          </div>
+
+          <!-- File Attachment (same as invoice system) -->
+          <div class="form-group">
+            <label>Attachment <small style="color:#94a3b8;font-weight:400;">(optional – uploads to Drive)</small></label>
+            <input type="file" id="s_file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              style="font-size:12px;padding:5px 0;border:none;background:transparent;" />
+          </div>
+
+          <!-- Remarks -->
+          <div class="form-group full-width">
+            <label>Remarks / Sample Details</label>
+            <textarea class="remarks-box" id="s_remarks" placeholder="Describe the sample — paper type, size, quantity, purpose, etc."></textarea>
+          </div>
+
         </div>
-        <div class="form-group">
-          <label>Location *</label>
-          <input type="text" id="s_location" placeholder="City / Area" />
-        </div>
-        <div class="form-group">
-          <label>Contact Person</label>
-          <input type="text" id="s_contactPerson" placeholder="Contact person name" />
-        </div>
-        <div class="form-group">
-          <label>Phone Number</label>
-          <input type="tel" id="s_phone" placeholder="Mobile / landline" />
-        </div>
-        <div class="form-group">
-          <label>Send By (Name) *</label>
-          <select id="s_sendName">
-            <option value="">-- Select --</option>
-            <option value="Mr. Pawan Negi">Mr. Pawan Negi</option>
-            <option value="Mr. Sonu Chauhan">Mr. Sonu Chauhan</option>
-            <option value="Mr. Rishabh Jain">Mr. Rishabh Jain</option>
-            <option value="Mr. Mukesh Shukla">Mr. Mukesh Shukla</option>
-            <option value="Mr. Pranav Satija">Mr. Pranav Satija</option>
-          </select>
-        </div>
-        <div class="form-group full-width">
-          <label>Remarks / Sample Details</label>
-          <textarea class="remarks-box" id="s_remarks" placeholder="Describe the sample being sent — paper type, size, quantity, purpose, etc."></textarea>
+        <div class="submit-row">
+          <span class="submit-success" id="s_success">✔ Sample saved successfully!</span>
+          <span id="s_uploading" style="display:none;color:#64748b;font-size:13px;font-style:italic;">Uploading attachment…</span>
+          <button onclick="submitSample()" id="s_submitBtn" style="padding:9px 24px;font-size:13px;">Submit Sample</button>
         </div>
       </div>
-      <div class="submit-row">
-        <span class="submit-success" id="s_success">✔ Sample saved successfully!</span>
-        <button onclick="submitSample()" id="s_submitBtn" style="padding:9px 24px;font-size:13px;">Submit Sample</button>
+
+      <!-- Blocked message (shown for USER role) -->
+      <div id="sampleEntryBlocked" class="entry-blocked" style="display:none;">
+        🔒 New sample entry is restricted to <strong>Admin</strong> and <strong>Manager</strong> only.
       </div>
+
     </div>
 
     <!-- Sample Records Table -->
@@ -194,15 +283,16 @@
             <th>#</th>
             <th>Date &amp; Time</th>
             <th>Party Name</th>
-            <th>Location</th>
+            <th>WMS Location</th>
             <th>Contact Person</th>
             <th>Phone</th>
-            <th>Send By</th>
+            <th>Send Mode</th>
             <th>Remarks / Details</th>
+            <th>Attachment</th>
           </tr>
         </thead>
         <tbody id="sampleTableBody">
-          <tr><td colspan="8" class="loader">Loading sample records...</td></tr>
+          <tr><td colspan="9" class="loader">Loading sample records...</td></tr>
         </tbody>
       </table>
     </div>
@@ -212,6 +302,7 @@
 
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycbzyl2ykqWMmmFhm8KH4dYSynxvB1ByYPHg78dEisUMCA8Q1T3_XYxPExQaXRttSeFLMeg/exec";
+  const PARTY_MASTER_SHEET_ID = "1R1eMFIwOdN5CyfrZa0K8NSVaJZnVmjPd95bOp2FYz90";
 
   const USERS = {
     "ADMIN":   { name: "Khushi Painter (Admin)",    role: "ADMIN",   viewAll: true,  canAssign: true  },
@@ -230,8 +321,9 @@
   const BY_COURIER = "By Courier";
   const HANDOVER_OPTIONS = ["Mr. Mukesh", "Mr. Pawan", "Mr. Rishabh", "Mr. Sonu"];
 
-  let rawOrders = [];
+  let rawOrders  = [];
   let rawSamples = [];
+  let partyMasterData = [];
   let currentUser = USERS["ADMIN"];
   let activeTab = 'orders';
 
@@ -270,8 +362,9 @@
     document.getElementById('sample-tab').style.display  = tab === 'sample'  ? '' : 'none';
     document.getElementById('tab-orders').classList.toggle('active', tab === 'orders');
     document.getElementById('tab-sample').classList.toggle('active',  tab === 'sample');
-    if (tab === 'sample' && rawSamples.length === 0) {
-      fetchSamples();
+    if (tab === 'sample') {
+      updateSampleFormAccess();
+      if (rawSamples.length === 0) fetchSamples();
     }
     updateTableHeight();
   }
@@ -279,6 +372,7 @@
   window.onload = function() {
     initAuthAndRenderUI();
     fetchData();
+    fetchPartyMaster();
     updateTableHeight();
     window.addEventListener('resize', updateTableHeight);
   };
@@ -315,6 +409,98 @@
     currentUser = USERS[val];
     document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
     renderFilteredData();
+    updateSampleFormAccess();
+  }
+
+  // ── Sample form access (Admin/Manager only) ──────────────────────────────────
+  function updateSampleFormAccess() {
+    const canCreate = currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER';
+    const formEl    = document.getElementById('sampleEntryForm');
+    const blockedEl = document.getElementById('sampleEntryBlocked');
+    if (formEl)    formEl.style.display    = canCreate ? '' : 'none';
+    if (blockedEl) blockedEl.style.display = canCreate ? 'none' : '';
+  }
+
+  // ── Party Master (Google Sheets) ─────────────────────────────────────────────
+  async function fetchPartyMaster() {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${PARTY_MASTER_SHEET_ID}/gviz/tq?tqx=out:json`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      // Strip JSONP wrapper: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+      const jsonStr = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+      const data = JSON.parse(jsonStr);
+      if (!data.table || !data.table.rows) return;
+
+      const cols = data.table.cols;
+      // Find party-name column and WMS-location column by label
+      let nameIdx = 0, locIdx = 1;
+      cols.forEach((c, i) => {
+        const lbl = (c.label || '').toLowerCase();
+        if (lbl.includes('party') || lbl.includes('name')) nameIdx = i;
+        if (lbl.includes('wms')   || lbl.includes('location') || lbl.includes('city')) locIdx = i;
+      });
+
+      partyMasterData = data.table.rows
+        .map(row => ({
+          name:     row.c[nameIdx] && row.c[nameIdx].v != null ? String(row.c[nameIdx].v).trim() : '',
+          location: row.c[locIdx]  && row.c[locIdx].v  != null ? String(row.c[locIdx].v).trim()  : ''
+        }))
+        .filter(p => p.name.length > 0);
+
+      console.log(`Party master loaded: ${partyMasterData.length} parties.`);
+    } catch (e) {
+      console.warn('Party master fetch failed:', e.message);
+    }
+  }
+
+  function filterPartyList(query) {
+    const dropdown = document.getElementById('partyDropdown');
+    if (!query || query.length < 1) { dropdown.style.display = 'none'; return; }
+    const q = query.toLowerCase();
+    const matches = partyMasterData.filter(p => p.name.toLowerCase().includes(q)).slice(0, 20);
+    if (!matches.length) { dropdown.style.display = 'none'; return; }
+
+    dropdown.innerHTML = '';
+    matches.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'party-opt';
+      div.onmousedown = () => selectParty(p.name, p.location);
+      const nameDiv = document.createElement('div');
+      nameDiv.textContent = p.name;
+      div.appendChild(nameDiv);
+      if (p.location) {
+        const locDiv = document.createElement('div');
+        locDiv.className = 'party-opt-loc';
+        locDiv.textContent = '📍 ' + p.location;
+        div.appendChild(locDiv);
+      }
+      dropdown.appendChild(div);
+    });
+    dropdown.style.display = 'block';
+  }
+
+  function selectParty(name, location) {
+    document.getElementById('s_partyName').value = name;
+    document.getElementById('s_location').value  = location;
+    document.getElementById('partyDropdown').style.display = 'none';
+  }
+
+  function hidePartyList() {
+    setTimeout(() => {
+      const d = document.getElementById('partyDropdown');
+      if (d) d.style.display = 'none';
+    }, 200);
+  }
+
+  // ── Send mode toggle (Person / Courier) ──────────────────────────────────────
+  function toggleSendMode() {
+    const mode = document.getElementById('s_sendMode').value;
+    const isCourier = mode === 'courier';
+    document.getElementById('senderPersonGroup').style.display  = isCourier ? 'none' : '';
+    const wrap = document.getElementById('courierFieldsWrap');
+    wrap.classList.toggle('show', isCourier);
   }
 
   // ── Orders fetch ─────────────────────────────────────────────────────────────
@@ -343,7 +529,7 @@
   // ── Samples fetch ────────────────────────────────────────────────────────────
   async function fetchSamples() {
     const tbody = document.getElementById('sampleTableBody');
-    tbody.innerHTML = '<tr><td colspan="8" class="loader">Fetching sample records...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="loader">Fetching sample records...</td></tr>';
     try {
       const response = await fetch(`${API_URL}?action=fetchSamples`, { method: 'GET' });
       const result = await response.json();
@@ -356,7 +542,7 @@
       }
     } catch (err) {
       console.error("Sample fetch error:", err);
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:20px;">Could not load sample records.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:20px;">Could not load sample records.</td></tr>';
     }
   }
 
@@ -364,12 +550,28 @@
   function renderSampleTable() {
     const tbody = document.getElementById('sampleTableBody');
     if (!rawSamples.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:25px;color:#94a3b8;">No sample records found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:25px;color:#94a3b8;">No sample records found.</td></tr>';
       return;
     }
     tbody.innerHTML = '';
     rawSamples.forEach((s, idx) => {
       const tr = document.createElement('tr');
+
+      // Build send-mode cell
+      let sendCell = '';
+      if (s.sendMode === 'courier' || s.courierDate || s.courierSender) {
+        sendCell  = `<span style="background:#fff7ed;color:#9a3412;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">📮 By Courier</span>`;
+        if (s.courierDate)   sendCell += `<br><small style="color:#475569;">📅 ${s.courierDate}</small>`;
+        if (s.courierSender) sendCell += `<br><small style="color:#475569;">👤 ${s.courierSender}</small>`;
+      } else {
+        sendCell = `<span style="color:var(--primary);font-weight:600;">${s.sendName || '—'}</span>`;
+      }
+
+      // Attachment cell
+      const attachCell = s.fileLink
+        ? `<a class="link-btn" href="${s.fileLink}" target="_blank">📎 View</a>`
+        : '<span style="color:#cbd5e1;">—</span>';
+
       tr.innerHTML = `
         <td><strong>${rawSamples.length - idx}</strong></td>
         <td><small>${s.timestamp || '—'}</small></td>
@@ -377,8 +579,9 @@
         <td>${s.location || '—'}</td>
         <td>${s.contactPerson || '—'}</td>
         <td>${s.phone || '—'}</td>
-        <td><span style="color:var(--primary);font-weight:600;">${s.sendName || '—'}</span></td>
+        <td>${sendCell}</td>
         <td><div class="items-box">${s.remarks || '—'}</div></td>
+        <td>${attachCell}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -386,16 +589,25 @@
 
   // ── Submit sample ────────────────────────────────────────────────────────────
   async function submitSample() {
-    const partyName    = document.getElementById('s_partyName').value.trim();
-    const location     = document.getElementById('s_location').value.trim();
+    const partyName     = document.getElementById('s_partyName').value.trim();
+    const location      = document.getElementById('s_location').value.trim();
     const contactPerson = document.getElementById('s_contactPerson').value.trim();
-    const phone        = document.getElementById('s_phone').value.trim();
-    const sendName     = document.getElementById('s_sendName').value;
-    const remarks      = document.getElementById('s_remarks').value.trim();
+    const phone         = document.getElementById('s_phone').value.trim();
+    const sendMode      = document.getElementById('s_sendMode').value;
+    const remarks       = document.getElementById('s_remarks').value.trim();
 
     if (!partyName) { alert('Party Name is required.'); document.getElementById('s_partyName').focus(); return; }
-    if (!location)  { alert('Location is required.');   document.getElementById('s_location').focus();  return; }
-    if (!sendName)  { alert('Please select who is sending the sample.'); document.getElementById('s_sendName').focus(); return; }
+
+    let sendName = '', courierDate = '', courierSender = '';
+    if (sendMode === 'courier') {
+      courierDate   = document.getElementById('s_courierDate').value;
+      courierSender = document.getElementById('s_courierSender').value.trim();
+      if (!courierDate)   { alert('Courier Date is required.'); document.getElementById('s_courierDate').focus(); return; }
+      if (!courierSender) { alert('Sender name is required for courier.'); document.getElementById('s_courierSender').focus(); return; }
+    } else {
+      sendName = document.getElementById('s_sendName').value;
+      if (!sendName) { alert('Please select who is sending the sample.'); document.getElementById('s_sendName').focus(); return; }
+    }
 
     const btn = document.getElementById('s_submitBtn');
     btn.disabled = true;
@@ -404,9 +616,28 @@
     const now = new Date();
     const timestamp = now.toLocaleDateString('en-IN') + ' ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
+    // Handle file attachment (same base64 upload as invoice system)
+    const fileInput = document.getElementById('s_file');
+    let fileData = '', fileName = '', mimeType = '', fileLink = '';
+    if (fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      fileName = file.name;
+      mimeType = file.type;
+      document.getElementById('s_uploading').style.display = 'inline';
+      fileData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
     const payload = {
       action: 'submitSample',
-      partyName, location, contactPerson, phone, sendName, remarks, timestamp
+      partyName, location, contactPerson, phone,
+      sendMode, sendName, courierDate, courierSender,
+      remarks, timestamp,
+      fileData, fileName, mimeType
     };
 
     try {
@@ -417,13 +648,22 @@
       });
       const res = await response.json();
       if (res && res.success) {
-        // Prepend to local list for instant update
-        rawSamples.unshift({ partyName, location, contactPerson, phone, sendName, remarks, timestamp });
+        fileLink = res.fileLink || res.url || '';
+        rawSamples.unshift({
+          partyName, location, contactPerson, phone,
+          sendMode, sendName, courierDate, courierSender,
+          remarks, timestamp, fileLink
+        });
         renderSampleTable();
         // Clear form
-        ['s_partyName','s_location','s_contactPerson','s_phone','s_remarks'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('s_sendName').value = '';
-        // Show success flash
+        ['s_partyName','s_location','s_contactPerson','s_phone','s_remarks','s_courierSender'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.value = '';
+        });
+        document.getElementById('s_sendName').value  = '';
+        document.getElementById('s_sendMode').value  = 'person';
+        document.getElementById('s_courierDate').value = '';
+        if (fileInput) fileInput.value = '';
+        toggleSendMode();
         const suc = document.getElementById('s_success');
         suc.style.display = 'inline-block';
         setTimeout(() => { suc.style.display = 'none'; }, 3000);
@@ -434,6 +674,7 @@
       console.error(err);
       alert('Network error. Please try again.');
     }
+    document.getElementById('s_uploading').style.display = 'none';
     btn.disabled = false;
     btn.textContent = 'Submit Sample';
   }
@@ -484,7 +725,7 @@
 
     filtered.forEach(item => {
       const tr = document.createElement('tr');
-      const isCourier = item.assignedTo === BY_COURIER;
+      const isCourier  = item.assignedTo === BY_COURIER;
       const isUploaded = item.status === 'Uploaded' || isCourier;
 
       if (isCourier) tr.classList.add('courier-row');
@@ -508,9 +749,19 @@
       if (isCourier) {
         actionHtml = `<span class="badge ByCourier">📮 Sent via Post</span>`;
       } else if (item.docLink) {
+        // Uploaded: show link and attachment date (if stored)
         actionHtml = `<a class="link-btn" href="${item.docLink}" target="_blank">📄 View Doc</a>`;
+        if (item.attachmentDate) {
+          actionHtml += `<br><small style="color:#475569;font-size:11px;">📅 ${item.attachmentDate}</small>`;
+        }
       } else {
+        // Pending: mandatory attachment date + file upload
         actionHtml = `
+          <div style="margin-bottom:6px;">
+            <div style="font-size:10px;font-weight:600;color:#b91c1c;margin-bottom:3px;">Attachment Date <span style="color:#b91c1c;">*</span></div>
+            <input type="date" id="attDate_${item.rowIndex}"
+              style="width:135px;font-size:11px;padding:4px 7px;border-radius:5px;border:1px solid #fca5a5;" />
+          </div>
           <input type="file" id="file_${item.rowIndex}" style="width:140px;font-size:11px;" />
           <button onclick="uploadDocument(${item.rowIndex})" style="margin-top:4px;">Upload</button>`;
       }
@@ -539,9 +790,15 @@
       tbody.appendChild(tr);
 
       if (isUploaded) {
+        // Attachment date (editable for already-uploaded records)
+        const attDateHtml = `
+          <input type="date" value="${item.attachmentDate || ''}"
+            style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid #c7d2fe;width:135px;"
+            onchange="updateHandoverInfo(${item.rowIndex}, 'attachmentDate', this.value)" />`;
+
         const signDateHtml = `
           <input type="date" value="${item.partySignDate || ''}"
-            style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid #c7d2fe;width:130px;"
+            style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid #c7d2fe;width:135px;"
             onchange="updateHandoverInfo(${item.rowIndex}, 'partySignDate', this.value)" />`;
 
         let handoverOpts = `<option value="">-- Select --</option>`;
@@ -557,7 +814,11 @@
         detRow.innerHTML = `
           <td colspan="9" style="padding:0;">
             <div style="padding:10px 20px;display:flex;gap:28px;align-items:center;
-                        background:#eff6ff;border-top:1px solid #bfdbfe;">
+                        background:#eff6ff;border-top:1px solid #bfdbfe;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:#b91c1c;margin-bottom:4px;">📅 Attachment Date *</div>
+                ${attDateHtml}
+              </div>
               <div>
                 <div style="font-size:11px;font-weight:600;color:#475569;margin-bottom:4px;">Party Sign Date</div>
                 ${signDateHtml}
@@ -603,8 +864,20 @@
     }
   }
 
-  // ── Upload document ───────────────────────────────────────────────────────────
+  // ── Upload document (invoice) ─────────────────────────────────────────────────
   function uploadDocument(rowIndex) {
+    // Validate mandatory attachment date
+    const attDateInput = document.getElementById(`attDate_${rowIndex}`);
+    const attDate = attDateInput ? attDateInput.value : '';
+    if (!attDate) {
+      alert('Attachment Date is required.\nPlease enter the date before uploading.');
+      if (attDateInput) {
+        attDateInput.style.borderColor = '#ef4444';
+        attDateInput.focus();
+      }
+      return;
+    }
+
     const fileInput = document.getElementById(`file_${rowIndex}`);
     if (!fileInput.files.length) {
       alert('Please choose a file first.');
@@ -626,13 +899,18 @@
             rowIndex: rowIndex,
             fileData: rawData,
             fileName: file.name,
-            mimeType: file.type
+            mimeType: file.type,
+            attachmentDate: attDate
           })
         });
         const res = await response.json();
         if (res.success) {
           const target = rawOrders.find(o => o.rowIndex === rowIndex);
-          if (target) { target.status = 'Uploaded'; target.docLink = res.url; }
+          if (target) {
+            target.status = 'Uploaded';
+            target.docLink = res.url;
+            target.attachmentDate = attDate;
+          }
           renderFilteredData();
         } else {
           alert('Upload failed: ' + res.error);
@@ -656,11 +934,12 @@
     if (btn) btn.textContent = isHidden ? '📋 Details ▲' : '📋 Details ▼';
   }
 
-  // ── Update Party Sign Date / Who to Handover Bill ────────────────────────────
+  // ── Update Attachment Date / Party Sign Date / Handover Bill ─────────────────
   async function updateHandoverInfo(rowIndex, field, value) {
     const payload = { action: 'updateHandoverInfo', rowIndex: rowIndex };
-    if (field === 'partySignDate') payload.partySignDate = value;
-    if (field === 'handoverBill')  payload.handoverBill  = value;
+    if (field === 'attachmentDate') payload.attachmentDate = value;
+    if (field === 'partySignDate')  payload.partySignDate  = value;
+    if (field === 'handoverBill')   payload.handoverBill   = value;
     try {
       await fetch(API_URL, {
         method: 'POST',
