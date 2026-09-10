@@ -26,10 +26,20 @@
     select:focus, input:focus, textarea:focus { border-color: var(--primary); }
 
     .table-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+    table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-width: 900px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; overflow-wrap: break-word; word-break: break-word; }
     th { background: #f1f5f9; font-weight: 600; color: #334155; position: sticky; top: 0; z-index: 10; }
     tr:hover { background: #f8fafc; }
+    /* Orders table column widths */
+    col.col-type     { width: 80px; }
+    col.col-invoice  { width: 150px; }
+    col.col-date     { width: 110px; }
+    col.col-party    { width: 170px; }
+    col.col-items    { width: 180px; }
+    col.col-sales    { width: 100px; }
+    col.col-assign   { width: 150px; }
+    col.col-status   { width: 95px; }
+    col.col-action   { width: 180px; }
 
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
     .Pending   { background: #fef3c7; color: #92400e; }
@@ -155,6 +165,17 @@
 
     <div class="table-container" id="ordersTableContainer">
       <table>
+        <colgroup>
+          <col class="col-type">
+          <col class="col-invoice">
+          <col class="col-date">
+          <col class="col-party">
+          <col class="col-items">
+          <col class="col-sales">
+          <col class="col-assign">
+          <col class="col-status">
+          <col class="col-action">
+        </colgroup>
         <thead>
           <tr>
             <th>Type</th>
@@ -773,10 +794,10 @@
         : '';
 
       tr.innerHTML = `
-        <td><span class="badge ${tagClass}">${item.docType}</span></td>
-        <td><strong>${item.docNo}</strong></td>
-        <td><small>${item.date}</small></td>
-        <td><strong>${item.party}</strong></td>
+        <td><span class="badge ${tagClass}" style="font-size:10px;white-space:nowrap;">${item.docType === 'Sales Order' ? 'Sales' : 'Dispatch'}</span></td>
+        <td><strong style="font-size:12px;line-height:1.4;">${item.docNo}</strong></td>
+        <td><small style="font-size:11px;">${item.date}</small></td>
+        <td><strong style="font-size:12px;">${item.party}</strong></td>
         <td><div class="items-box">${item.items}</div></td>
         <td><small style="color:#334155;font-weight:600;">${item.salesPerson || '—'}</small></td>
         <td>${assignHtml}</td>
