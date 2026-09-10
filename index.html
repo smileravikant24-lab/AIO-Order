@@ -270,13 +270,6 @@
             </div>
           </div>
 
-          <!-- File Attachment (same as invoice system) -->
-          <div class="form-group">
-            <label>Attachment <small style="color:#94a3b8;font-weight:400;">(optional – uploads to Drive)</small></label>
-            <input type="file" id="s_file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-              style="font-size:12px;padding:5px 0;border:none;background:transparent;" />
-          </div>
-
           <!-- Remarks -->
           <div class="form-group full-width">
             <label>Remarks / Sample Details</label>
@@ -286,7 +279,6 @@
         </div>
         <div class="submit-row">
           <span class="submit-success" id="s_success">✔ Sample saved successfully!</span>
-          <span id="s_uploading" style="display:none;color:#64748b;font-size:13px;font-style:italic;">Uploading attachment…</span>
           <button onclick="submitSample()" id="s_submitBtn" style="padding:9px 24px;font-size:13px;">Submit Sample</button>
         </div>
       </div>
@@ -311,7 +303,6 @@
             <th>Phone</th>
             <th>Handover / Courier</th>
             <th>Remarks / Details</th>
-            <th>Attachment</th>
           </tr>
         </thead>
         <tbody id="sampleTableBody">
@@ -573,7 +564,7 @@
   function renderSampleTable() {
     const tbody = document.getElementById('sampleTableBody');
     if (!rawSamples.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:25px;color:#94a3b8;">No sample records found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:25px;color:#94a3b8;">No sample records found.</td></tr>';
       return;
     }
     tbody.innerHTML = '';
@@ -593,11 +584,6 @@
         sendCell = `<span style="color:var(--primary);font-weight:600;">${displayName}</span>`;
       }
 
-      // Attachment cell
-      const attachCell = s.fileLink
-        ? `<a class="link-btn" href="${s.fileLink}" target="_blank">📎 View</a>`
-        : '<span style="color:#cbd5e1;">—</span>';
-
       tr.innerHTML = `
         <td><strong>${rawSamples.length - idx}</strong></td>
         <td><small>${s.timestamp || '—'}</small></td>
@@ -606,7 +592,6 @@
         <td>${s.phone || '—'}</td>
         <td>${sendCell}</td>
         <td><div class="items-box">${s.remarks || '—'}</div></td>
-        <td>${attachCell}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -640,28 +625,11 @@
     const now = new Date();
     const timestamp = now.toLocaleDateString('en-IN') + ' ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-    // Handle file attachment (same base64 upload as invoice system)
-    const fileInput = document.getElementById('s_file');
-    let fileData = '', fileName = '', mimeType = '', fileLink = '';
-    if (fileInput.files.length > 0) {
-      const file = fileInput.files[0];
-      fileName = file.name;
-      mimeType = file.type;
-      document.getElementById('s_uploading').style.display = 'inline';
-      fileData = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload  = e => resolve(e.target.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
     const payload = {
       action: 'submitSample',
       partyName, salesPerson, contactPerson, phone,
       sendMode, sendName: handoverBill, handoverBill, courierDate, courierSender,
-      remarks, timestamp,
-      fileData, fileName, mimeType
+      remarks, timestamp
     };
 
     try {
@@ -672,11 +640,10 @@
       });
       const res = await response.json();
       if (res && res.success) {
-        fileLink = res.fileLink || res.url || '';
         rawSamples.unshift({
           partyName, salesPerson, contactPerson, phone,
           sendMode, sendName: handoverBill, handoverBill, courierDate, courierSender,
-          remarks, timestamp, fileLink
+          remarks, timestamp
         });
         renderSampleTable();
         // Clear form
@@ -685,7 +652,6 @@
         });
         document.getElementById('s_sendMode').value  = 'person';
         document.getElementById('s_courierDate').value = '';
-        if (fileInput) fileInput.value = '';
         toggleSendMode();
         const suc = document.getElementById('s_success');
         suc.style.display = 'inline-block';
@@ -697,7 +663,6 @@
       console.error(err);
       alert('Network error. Please try again.');
     }
-    document.getElementById('s_uploading').style.display = 'none';
     btn.disabled = false;
     btn.textContent = 'Submit Sample';
   }
