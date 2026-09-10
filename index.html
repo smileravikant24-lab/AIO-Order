@@ -450,7 +450,7 @@
     const formEl    = document.getElementById('sampleEntryForm');
     const blockedEl = document.getElementById('sampleEntryBlocked');
     if (formEl)    formEl.style.display    = canCreate ? '' : 'none';
-    if (blockedEl) blockedEl.style.display = canCreate ? 'none' : '';
+    if (blockedEl) blockedEl.style.display = 'none';
   }
 
   // ── Party Master (Google Sheets) ─────────────────────────────────────────────
@@ -868,10 +868,6 @@
             <div style="padding:10px 20px;display:flex;gap:28px;align-items:center;
                         background:#eff6ff;border-top:1px solid #bfdbfe;flex-wrap:wrap;">
               <div>
-                <div style="font-size:11px;font-weight:600;color:#475569;margin-bottom:4px;">📅 Attachment Date</div>
-                ${attDateHtml}
-              </div>
-              <div>
                 <div style="font-size:11px;font-weight:600;color:#475569;margin-bottom:4px;">Party Sign Date</div>
                 ${signDateHtml}
               </div>
@@ -988,37 +984,17 @@
     if (btn) btn.textContent = isHidden ? '📋 Details ▲' : '📋 Details ▼';
   }
 
-  // ── Update Attachment Date / Party Sign Date / Handover Bill ─────────────────
-  async function updateHandoverInfo(rowIndex, field, value) {
-    const payload = { action: 'updateHandoverInfo', rowIndex: rowIndex };
-    if (field === 'attachmentDate') payload.attachmentDate = value;
-    if (field === 'partySignDate')  payload.partySignDate  = value;
-    if (field === 'handoverBill')   payload.handoverBill   = value;
-    try {
-      await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      });
-      const target = rawOrders.find(o => o.rowIndex === rowIndex);
-      if (target) target[field] = value;
-    } catch(e) {
-      showToast('Error saving. Please try again.', 'error');
-    }
-  }
-
-  // ── Save details row (Attachment Date, Party Sign Date, Handover Bill) ──────
+  // ── Save details row (Party Sign Date, Handover Bill) ───────────────────────
   async function saveDetailsRow(rowIndex) {
-    const attDate  = (document.getElementById(`det_att_${rowIndex}`)  || {}).value || '';
     const signDate = (document.getElementById(`det_sign_${rowIndex}`) || {}).value || '';
     const handover = (document.getElementById(`det_hdl_${rowIndex}`)  || {}).value || '';
-    const payload = { action: 'updateHandoverInfo', rowIndex, attachmentDate: attDate, partySignDate: signDate, handoverBill: handover };
+    const payload = { action: 'updateHandoverInfo', rowIndex, partySignDate: signDate, handoverBill: handover };
     try {
       const res  = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (data.success) {
         const target = rawOrders.find(o => o.rowIndex === rowIndex);
-        if (target) { target.attachmentDate = attDate; target.partySignDate = signDate; target.handoverBill = handover; }
+        if (target) { target.partySignDate = signDate; target.handoverBill = handover; }
         showToast('Saved successfully!', 'success');
       } else {
         showToast('Save failed: ' + (data.error || 'Unknown error'), 'error');
