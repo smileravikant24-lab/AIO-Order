@@ -126,7 +126,7 @@ function setupSamplesSheet() {
 function _applyHandoverValidation(sheet, startRow, numRows) {
   const rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(HANDOVER_OPTIONS, true)
-    .setAllowInvalid(false).build();
+    .setAllowInvalid(true).build();
   sheet.getRange(startRow, COL.HANDOVER_BILL, numRows, 1).setDataValidation(rule);
 }
 
@@ -353,9 +353,6 @@ function updateHandoverInfo(params) {
       sheet.getRange(row, COL.SIGN_DATE).setValue(params.partySignDate);
     }
     if (params.handoverBill !== undefined && params.handoverBill !== null) {
-      if (params.handoverBill && !HANDOVER_OPTIONS.includes(params.handoverBill)) {
-        return { success: false, error: "Invalid handover option: " + params.handoverBill };
-      }
       sheet.getRange(row, COL.HANDOVER_BILL).setValue(params.handoverBill);
     }
     return { success: true };
