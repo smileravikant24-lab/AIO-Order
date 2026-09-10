@@ -418,7 +418,7 @@
     const formEl    = document.getElementById('sampleEntryForm');
     const blockedEl = document.getElementById('sampleEntryBlocked');
     if (formEl)    formEl.style.display    = canCreate ? '' : 'none';
-    if (blockedEl) blockedEl.style.display = canCreate ? 'none' : '';
+    if (blockedEl) blockedEl.style.display = 'none';
   }
 
   // ── Party Master (Google Sheets) ─────────────────────────────────────────────
@@ -821,10 +821,6 @@
             <div style="padding:10px 20px;display:flex;gap:28px;align-items:center;
                         background:#eff6ff;border-top:1px solid #bfdbfe;flex-wrap:wrap;">
               <div>
-                <div style="font-size:11px;font-weight:600;color:#b91c1c;margin-bottom:4px;">📅 Attachment Date *</div>
-                ${attDateHtml}
-              </div>
-              <div>
                 <div style="font-size:11px;font-weight:600;color:#475569;margin-bottom:4px;">Party Sign Date</div>
                 ${signDateHtml}
               </div>
@@ -939,23 +935,94 @@
     if (btn) btn.textContent = isHidden ? '📋 Details ▲' : '📋 Details ▼';
   }
 
-  // ── Update Attachment Date / Party Sign Date / Handover Bill ─────────────────
-  async function updateHandoverInfo(rowIndex, field, value) {
-    const payload = { action: 'updateHandoverInfo', rowIndex: rowIndex };
-    if (field === 'attachmentDate') payload.attachmentDate = value;
-    if (field === 'partySignDate')  payload.partySignDate  = value;
-    if (field === 'handoverBill')   payload.handoverBill   = value;
+  // ── Save details row (Party Sign Date, Handover Bill) ───────────────────────
+  async function saveDetailsRow(rowIndex) {
+    const signDate = (document.getElementById(`det_sign_${rowIndex}`) || {}).value || '';
+    const handover = (document.getElementById(`det_hdl_${rowIndex}`)  || {}).value || '';
+    const payload = { action: 'updateHandoverInfo', rowIndex, partySignDate: signDate, handoverBill: handover };
     try {
-      await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      });
-      const target = rawOrders.find(o => o.rowIndex === rowIndex);
-      if (target) target[field] = value;
+      const res  = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (data.success) {
+        const target = rawOrders.find(o => o.rowIndex === rowIndex);
+        if (target) { target.partySignDate = signDate; target.handoverBill = handover; }
+        showToast('Saved successfully!', 'success');
+      } else {
+        showToast('Save failed: ' + (data.error || 'Unknown error'), 'error');
+      }
     } catch(e) {
-      alert('Error saving. Please try again.');
+      showToast('Error saving. Please try again.', 'error');
     }
+  }
+
+  // ── Show modify-doc upload form in action cell ────────────────────────────────
+  function showModifyDoc(rowIndex) {
+    const actionCell = document.getElementById(`act_${rowIndex}`);
+    if (!actionCell) return;
+    actionCell.innerHTML = `
+      <div style="margin-bottom:6px;">
+        <div style="font-size:10px;font-weight:600;color:#b91c1c;margin-bottom:3px;">Attachment Date *</div>
+        <input type="date" id="attDate_${rowIndex}"
+          style="width:100%;font-size:11px;padding:4px 7px;border-radius:5px;border:1px solid #fca5a5;" />
+      </div>
+      <input type="file" id="file_${rowIndex}" style="width:100%;font-size:11px;" />
+      <div style="display:flex;gap:4px;margin-top:4px;">
+        <button onclick="uploadDocument(${rowIndex})" style="flex:1;">Upload</button>
+        <button onclick="renderFilteredData()" style="background:#64748b;flex:1;">Cancel</button>
+      </div>`;
+  }
+
+  // ── Remove document — Admin / Manager only ────────────────────────────────────
+  function removeDocument(rowIndex) {
+    const cell = document.getElementById(`act_${rowIndex}`);
+    if (!cell) return;
+    window[`_actBackup_${rowIndex}`] = cell.innerHTML;
+    cell.innerHTML = `
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:7px;padding:8px 10px;">
+        <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:7px;">🗑 Remove document?</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:8px;">Status will revert to Pending.</div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="confirmRemoveDoc(${rowIndex})" style="background:#dc2626;font-size:11px;padding:4px 10px;">Yes, Remove</button>
+          <button onclick="cancelRemoveDoc(${rowIndex})" style="background:#64748b;font-size:11px;padding:4px 10px;">Cancel</button>
+        </div>
+      </div>`;
+  }
+
+  function cancelRemoveDoc(rowIndex) {
+    const cell = document.getElementById(`act_${rowIndex}`);
+    if (cell && window[`_actBackup_${rowIndex}`]) cell.innerHTML = window[`_actBackup_${rowIndex}`];
+  }
+
+  async function confirmRemoveDoc(rowIndex) {
+    try {
+      const res  = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'removeDoc', rowIndex }) });
+      const data = await res.json();
+      if (data.success) {
+        const target = rawOrders.find(o => o.rowIndex === rowIndex);
+        if (target) { target.status = 'Pending'; target.docLink = ''; target.attachmentDate = ''; }
+        showToast('Document removed. Status reverted to Pending.', 'success');
+        renderFilteredData();
+      } else {
+        showToast('Remove failed: ' + (data.error || 'Unknown error'), 'error');
+        cancelRemoveDoc(rowIndex);
+      }
+    } catch(e) {
+      showToast('Error removing document. Please try again.', 'error');
+      cancelRemoveDoc(rowIndex);
+    }
+  }
+
+  // ── Toast notifications ──────────────────────────────────────────────────────
+  function showToast(message, type = 'info', duration = 3200) {
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span style="flex:1;">${message}</span>`;
+    document.getElementById('toastContainer').appendChild(el);
+    setTimeout(() => {
+      el.style.animation = 'toastOut 0.28s cubic-bezier(.4,0,.2,1) forwards';
+      setTimeout(() => el.remove(), 290);
+    }, duration);
   }
 
 </script>
