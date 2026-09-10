@@ -26,20 +26,20 @@
     select:focus, input:focus, textarea:focus { border-color: var(--primary); }
 
     .table-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-width: 900px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-width: 700px; }
     th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; overflow-wrap: break-word; word-break: break-word; }
     th { background: #f1f5f9; font-weight: 600; color: #334155; position: sticky; top: 0; z-index: 10; }
     tr:hover { background: #f8fafc; }
-    /* Orders table column widths */
-    col.col-type     { width: 80px; }
-    col.col-invoice  { width: 150px; }
-    col.col-date     { width: 110px; }
-    col.col-party    { width: 170px; }
-    col.col-items    { width: 180px; }
-    col.col-sales    { width: 100px; }
-    col.col-assign   { width: 150px; }
-    col.col-status   { width: 95px; }
-    col.col-action   { width: 180px; }
+    /* Orders table column widths (percentage-based for full-width) */
+    col.col-type     { width: 6%; }
+    col.col-invoice  { width: 12%; }
+    col.col-date     { width: 9%; }
+    col.col-party    { width: 14%; }
+    col.col-items    { width: 15%; }
+    col.col-sales    { width: 8%; }
+    col.col-assign   { width: 13%; }
+    col.col-status   { width: 8%; }
+    col.col-action   { width: 15%; }
 
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
     .Pending   { background: #fef3c7; color: #92400e; }
@@ -769,18 +769,20 @@
       if (isCourier) {
         actionHtml = `<span class="badge ByCourier">📮 Sent via Post</span>`;
       } else if (item.docLink) {
-        // Uploaded: show link and attachment date (if stored)
         actionHtml = `<a class="link-btn" href="${item.docLink}" target="_blank">📄 View Doc</a>`;
+      } else if (item.status === 'Uploaded') {
+        // Uploaded but no link stored — show simple tick, details row has the info
+        actionHtml = `<span style="color:#166534;font-size:12px;font-weight:600;">✔ Uploaded</span>`;
       } else {
         // Pending: mandatory attachment date + file upload
         actionHtml = `
           <div style="margin-bottom:6px;">
             <div style="font-size:10px;font-weight:600;color:#b91c1c;margin-bottom:3px;">Attachment Date <span style="color:#b91c1c;">*</span></div>
             <input type="date" id="attDate_${item.rowIndex}"
-              style="width:135px;font-size:11px;padding:4px 7px;border-radius:5px;border:1px solid #fca5a5;" />
+              style="width:100%;font-size:11px;padding:4px 7px;border-radius:5px;border:1px solid #fca5a5;" />
           </div>
-          <input type="file" id="file_${item.rowIndex}" style="width:140px;font-size:11px;" />
-          <button onclick="uploadDocument(${item.rowIndex})" style="margin-top:4px;">Upload</button>`;
+          <input type="file" id="file_${item.rowIndex}" style="width:100%;font-size:11px;" />
+          <button onclick="uploadDocument(${item.rowIndex})" style="margin-top:4px;width:100%;">Upload</button>`;
       }
 
       const statusLabel = isCourier ? 'Uploaded' : item.status;
