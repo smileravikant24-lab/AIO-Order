@@ -34,13 +34,12 @@
     col.col-type     { width: 6%; }
     col.col-invoice  { width: 12%; }
     col.col-date     { width: 9%; }
-    col.col-party    { width: 14%; }
+    col.col-party    { width: 18%; }
     col.col-amount   { width: 8%; }
-    col.col-loc      { width: 9%; }
-    col.col-phone    { width: 6%; }
+    col.col-phone    { width: 7%; }
     col.col-sales    { width: 8%; }
     col.col-assign   { width: 13%; }
-    col.col-action   { width: 15%; }
+    col.col-action   { width: 19%; }
 
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
     .Pending   { background: #fef3c7; color: #92400e; }
@@ -182,7 +181,6 @@
           <col class="col-date">
           <col class="col-party">
           <col class="col-amount">
-          <col class="col-loc">
           <col class="col-phone">
           <col class="col-sales">
           <col class="col-assign">
@@ -195,7 +193,6 @@
             <th>Date &amp; Time</th>
             <th>Party Details</th>
             <th>Inv. Amount</th>
-            <th>Area / Location</th>
             <th>Phone</th>
             <th>Sales Person</th>
             <th>Assigned To</th>
@@ -203,7 +200,7 @@
           </tr>
         </thead>
         <tbody id="tableBody">
-          <tr><td colspan="10" class="loader">Loading records from Google Sheets...</td></tr>
+          <tr><td colspan="9" class="loader">Loading records from Google Sheets...</td></tr>
         </tbody>
       </table>
     </div>
@@ -523,7 +520,7 @@
   // ── Orders fetch ─────────────────────────────────────────────────────────────
   async function fetchData() {
     const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '<tr><td colspan="10" class="loader">Fetching data from Google Sheets...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="loader">Fetching data from Google Sheets...</td></tr>';
     try {
       const response = await fetch(`${API_URL}?action=fetchOrders`, { method: 'GET' });
       const result = await response.json();
@@ -531,12 +528,12 @@
         rawOrders = result.data;
         renderFilteredData();
       } else {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:red;padding:20px;">
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
           Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
       }
     } catch (err) {
       console.error("Fetch Error:", err);
-      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:red;padding:20px;">
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
         Failed to load data.<br>
         <small style="color:#64748b;">Please verify your Google Apps Script deployment is active
         and set to <b>"Anyone"</b>.</small></td></tr>`;
@@ -708,7 +705,7 @@
     tbody.innerHTML = '';
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:25px;color:#94a3b8;">
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:25px;color:#94a3b8;">
         ${currentUser.role === 'USER' ? 'No orders assigned to you yet.' : 'No matching orders found.'}
       </td></tr>`;
       return;
@@ -788,9 +785,11 @@
         <td><span class="badge ${tagClass}" style="font-size:10px;white-space:nowrap;">${item.docType === 'Sales Order' ? 'Sales' : 'Dispatch'}</span></td>
         <td><strong style="font-size:12px;line-height:1.4;">${item.docNo}</strong></td>
         <td><small style="font-size:11px;">${item.date}</small></td>
-        <td><strong style="font-size:12px;">${item.party}</strong></td>
+        <td>
+          <strong style="font-size:12px;">${item.party}</strong>
+          ${item.location ? `<br><small style="font-size:10px;color:#64748b;">${item.location}</small>` : ''}
+        </td>
         <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${item.invoiceAmount || '—'}</small></td>
-        <td><small style="font-size:11px;color:#334155;">${item.location || '—'}</small></td>
         <td><small style="font-size:11px;color:#334155;">${item.phone || '—'}</small></td>
         <td><small style="color:#334155;font-weight:600;">${item.salesPerson || '—'}</small></td>
         <td>${assignHtml}</td>
@@ -823,7 +822,7 @@
         detRow.id = `det_${item.rowIndex}`;
         detRow.style.display = 'none';
         detRow.innerHTML = `
-          <td colspan="10" style="padding:0;">
+          <td colspan="9" style="padding:0;">
             <div style="padding:10px 20px;display:flex;gap:28px;align-items:center;
                         background:#eff6ff;border-top:1px solid #bfdbfe;flex-wrap:wrap;">
               <div>
