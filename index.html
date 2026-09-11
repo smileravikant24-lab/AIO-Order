@@ -138,6 +138,7 @@
   <div class="tab-nav sticky-top">
     <button class="tab-btn active" id="tab-orders" onclick="switchTab('orders')">📋 Orders</button>
     <button class="tab-btn" id="tab-sample" onclick="switchTab('sample')">🧪 Sample</button>
+    <button class="tab-btn" id="tab-posted" onclick="switchTab('posted')">📦 Posted</button>
     <div id="userBadge" class="user-badge" style="margin-left:auto;white-space:nowrap;">Role: Authenticating...</div>
   </div>
 
@@ -307,6 +308,46 @@
     </div>
 
   </div>
+
+  <!-- ══════════════════════ POSTED ORDERS TAB ══════════════════════ -->
+  <div id="posted-tab" style="display:none;">
+    <div class="card" style="padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <input type="text" id="postedSearchInput" placeholder="Search by invoice / party…" style="flex:1;min-width:200px;max-width:380px;" oninput="renderPostedTable()" />
+      <span id="postedCount" style="font-size:12px;color:#64748b;"></span>
+    </div>
+    <div class="table-container" id="postedTableContainer">
+      <table>
+        <colgroup>
+          <col class="col-type">
+          <col class="col-invoice">
+          <col class="col-date">
+          <col class="col-party">
+          <col class="col-amount">
+          <col class="col-phone">
+          <col class="col-sales">
+          <col class="col-assign">
+          <col class="col-action">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Invoice No.</th>
+            <th>Date &amp; Time</th>
+            <th>Party Details</th>
+            <th>Inv. Amount</th>
+            <th>Phone</th>
+            <th>Sales Person</th>
+            <th>Assigned To</th>
+            <th>Saved On</th>
+          </tr>
+        </thead>
+        <tbody id="postedTableBody">
+          <tr><td colspan="9" class="loader">Loading posted orders...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -332,6 +373,7 @@
 
   let rawOrders  = [];
   let rawSamples = [];
+  let rawPosted  = [];
   let partyMasterData = [];
   let currentUser = USERS["ADMIN"];
   let activeTab = 'orders';
@@ -368,6 +410,13 @@
       const smaxH = window.innerHeight - stop - 20;
       stc.style.maxHeight = Math.max(smaxH, 200) + 'px';
     }
+
+    const ptc = document.getElementById('postedTableContainer');
+    if (ptc) {
+      const ptop = ptc.getBoundingClientRect().top + window.scrollY;
+      const pmaxH = window.innerHeight - ptop - 20;
+      ptc.style.maxHeight = Math.max(pmaxH, 300) + 'px';
+    }
   }
 
   // ── Tab switching ────────────────────────────────────────────────────────────
@@ -375,11 +424,16 @@
     activeTab = tab;
     document.getElementById('orders-tab').style.display = tab === 'orders' ? '' : 'none';
     document.getElementById('sample-tab').style.display  = tab === 'sample'  ? '' : 'none';
+    document.getElementById('posted-tab').style.display  = tab === 'posted'  ? '' : 'none';
     document.getElementById('tab-orders').classList.toggle('active', tab === 'orders');
     document.getElementById('tab-sample').classList.toggle('active',  tab === 'sample');
+    document.getElementById('tab-posted').classList.toggle('active',  tab === 'posted');
     if (tab === 'sample') {
       updateSampleFormAccess();
       if (rawSamples.length === 0) fetchSamples();
+    }
+    if (tab === 'posted') {
+      if (rawPosted.length === 0) fetchPostedOrders();
     }
     updateTableHeight();
   }
@@ -556,6 +610,71 @@
       console.error("Sample fetch error:", err);
       tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:20px;">Could not load sample records.</td></tr>';
     }
+  }
+
+  // ── Posted Orders fetch ──────────────────────────────────────────────────────
+  async function fetchPostedOrders() {
+    const tbody = document.getElementById('postedTableBody');
+    tbody.innerHTML = '<tr><td colspan="9" class="loader">Fetching posted orders...</td></tr>';
+    try {
+      const response = await fetch(`${API_URL}?action=fetchPostedOrders`, { method: 'GET' });
+      const result = await response.json();
+      if (result && result.success) {
+        rawPosted = result.data || [];
+        renderPostedTable();
+      } else {
+        rawPosted = [];
+        renderPostedTable();
+      }
+    } catch (err) {
+      console.error("Posted fetch error:", err);
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:20px;">Could not load posted orders.</td></tr>';
+    }
+  }
+
+  // ── Posted Orders render ─────────────────────────────────────────────────────
+  function renderPostedTable() {
+    const tbody  = document.getElementById('postedTableBody');
+    const search = (document.getElementById('postedSearchInput') || {}).value?.toLowerCase().trim() || '';
+
+    let list = rawPosted;
+    if (currentUser && currentUser.role === 'USER') {
+      list = list.filter(p => p.assignedTo === currentUser.assignKey);
+    }
+    if (search) {
+      list = list.filter(p =>
+        `${p.docNo} ${p.party} ${p.address}`.toLowerCase().includes(search)
+      );
+    }
+
+    document.getElementById('postedCount').textContent = list.length
+      ? `${list.length} record${list.length > 1 ? 's' : ''}`
+      : '';
+
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:25px;color:#94a3b8;">No posted orders found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    list.forEach(p => {
+      const tagClass = p.docType === 'Sales Order' ? 'type-sales' : 'type-dispatch';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="badge ${tagClass}" style="font-size:10px;white-space:nowrap;">${p.docType === 'Sales Order' ? 'Sales' : 'Dispatch'}</span></td>
+        <td><strong style="font-size:12px;line-height:1.4;">${p.docNo}</strong></td>
+        <td><small style="font-size:11px;">${p.date || '—'}</small></td>
+        <td>
+          <strong style="font-size:12px;">${p.party || '—'}</strong>
+          ${p.location ? `<br><small style="font-size:10px;color:#64748b;">${p.location}</small>` : ''}
+        </td>
+        <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${fmtINR(p.invoiceAmount)}</small></td>
+        <td><small style="font-size:11px;color:#334155;">${p.phone || '—'}</small></td>
+        <td><small style="color:#334155;font-weight:600;">${p.salesPerson || '—'}</small></td>
+        <td><small style="color:#475569;">${p.assignedTo || '—'}</small></td>
+        <td><small style="font-size:11px;color:#64748b;">${p.savedOn || '—'}</small></td>
+      `;
+      tbody.appendChild(tr);
+    });
   }
 
   // ── Sample table render ──────────────────────────────────────────────────────
