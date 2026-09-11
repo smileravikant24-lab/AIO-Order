@@ -732,7 +732,7 @@
       }
 
       if (search) {
-        const str = `${item.docNo} ${item.party} ${item.items} ${item.address}`.toLowerCase();
+        const str = `${item.docNo} ${item.party} ${item.address}`.toLowerCase();
         if (!str.includes(search)) return false;
       }
       return true;
