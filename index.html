@@ -294,11 +294,14 @@
             <th>Contact Person</th>
             <th>Phone</th>
             <th>Handover / Courier</th>
+            <th>Bill Handover To</th>
+            <th>Handover Date</th>
             <th>Remarks / Details</th>
           </tr>
         </thead>
         <tbody id="sampleTableBody">
           <tr><td colspan="9" class="loader">Loading sample records...</td></tr>
+
         </tbody>
       </table>
     </div>
@@ -562,7 +565,7 @@
       ? rawSamples.filter(s => s.sendMode === currentUser.assignKey)
       : rawSamples;
     if (!samples.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:25px;color:#94a3b8;">No sample records found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:25px;color:#94a3b8;">No sample records found.</td></tr>';
       return;
     }
     tbody.innerHTML = '';
@@ -580,6 +583,15 @@
         sendCell = `<span style="color:var(--primary);font-weight:600;">${displayName}</span>`;
       }
 
+      let handoverCell = '', handoverDateCell = '';
+      if (currentUser && currentUser.role === 'USER' && s.rowIndex) {
+        handoverCell = `<td><input type="text" id="ht_${s.rowIndex}" value="${(s.handoverTo||'').replace(/"/g,'&quot;')}" style="width:100%;font-size:11px;padding:3px 5px;border:1px solid #cbd5e1;border-radius:4px;" placeholder="Kise diya..."/></td>`;
+        handoverDateCell = `<td style="white-space:nowrap;"><input type="date" id="hd_${s.rowIndex}" value="${s.handoverDate||''}" style="font-size:11px;padding:2px 4px;border:1px solid #cbd5e1;border-radius:4px;width:120px;"><br><button onclick="saveHandover(${s.rowIndex})" style="margin-top:3px;font-size:10px;padding:2px 7px;background:#1e40af;color:#fff;border:none;border-radius:4px;cursor:pointer;">Save</button></td>`;
+      } else {
+        handoverCell = `<td><small style="color:#334155;">${s.handoverTo || '—'}</small></td>`;
+        handoverDateCell = `<td><small style="color:#334155;">${s.handoverDate || '—'}</small></td>`;
+      }
+
       tr.innerHTML = `
         <td><strong>${samples.length - idx}</strong></td>
         <td><small>${s.timestamp || '—'}</small></td>
@@ -587,10 +599,41 @@
         <td>${s.contactPerson || '—'}</td>
         <td>${s.phone || '—'}</td>
         <td>${sendCell}</td>
+        ${handoverCell}
+        ${handoverDateCell}
         <td><div class="items-box">${s.remarks || '—'}</div></td>
       `;
       tbody.appendChild(tr);
     });
+  }
+
+  // ── Save handover info (USER role) ──────────────────────────────────────────
+  async function saveHandover(rowIndex) {
+    const handoverTo   = (document.getElementById('ht_' + rowIndex) || {}).value?.trim() || '';
+    const handoverDate = (document.getElementById('hd_' + rowIndex) || {}).value || '';
+    const btn = event.target;
+    btn.disabled = true; btn.textContent = '...';
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'updateSampleHandover', rowIndex, handoverTo, handoverDate })
+      });
+      const res = await response.json();
+      if (res && res.success) {
+        btn.textContent = '✓';
+        btn.style.background = '#16a34a';
+        const rec = rawSamples.find(s => s.rowIndex === rowIndex);
+        if (rec) { rec.handoverTo = handoverTo; rec.handoverDate = handoverDate; }
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Save'; btn.style.background = '#1e40af'; }, 2000);
+      } else {
+        alert('Error: ' + (res ? res.error : 'Unknown'));
+        btn.disabled = false; btn.textContent = 'Save';
+      }
+    } catch (err) {
+      alert('Network error. Try again.');
+      btn.disabled = false; btn.textContent = 'Save';
+    }
   }
 
   // ── Submit sample ────────────────────────────────────────────────────────────
@@ -635,9 +678,9 @@
       const res = await response.json();
       if (res && res.success) {
         rawSamples.unshift({
-          partyName, salesPerson, contactPerson, phone,
-          sendMode, sendName: handoverBill, handoverBill, courierDate, courierSender,
-          remarks, timestamp
+          rowIndex: null, partyName, salesPerson, contactPerson, phone,
+          sendMode, sendName: '', handoverBill: '', courierDate, courierSender,
+          remarks, timestamp, handoverTo: '', handoverDate: ''
         });
         renderSampleTable();
         // Clear form
