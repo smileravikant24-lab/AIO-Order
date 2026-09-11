@@ -35,10 +35,11 @@
     col.col-invoice  { width: 12%; }
     col.col-date     { width: 9%; }
     col.col-party    { width: 14%; }
-    col.col-items    { width: 15%; }
+    col.col-amount   { width: 8%; }
+    col.col-loc      { width: 9%; }
+    col.col-phone    { width: 6%; }
     col.col-sales    { width: 8%; }
     col.col-assign   { width: 13%; }
-    col.col-status   { width: 8%; }
     col.col-action   { width: 15%; }
 
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
@@ -180,10 +181,11 @@
           <col class="col-invoice">
           <col class="col-date">
           <col class="col-party">
-          <col class="col-items">
+          <col class="col-amount">
+          <col class="col-loc">
+          <col class="col-phone">
           <col class="col-sales">
           <col class="col-assign">
-          <col class="col-status">
           <col class="col-action">
         </colgroup>
         <thead>
@@ -192,15 +194,16 @@
             <th>Invoice No.</th>
             <th>Date &amp; Time</th>
             <th>Party Details</th>
-            <th>Merged Items</th>
+            <th>Inv. Amount</th>
+            <th>Area / Location</th>
+            <th>Phone</th>
             <th>Sales Person</th>
             <th>Assigned To</th>
-            <th>Status</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody id="tableBody">
-          <tr><td colspan="9" class="loader">Loading records from Google Sheets...</td></tr>
+          <tr><td colspan="10" class="loader">Loading records from Google Sheets...</td></tr>
         </tbody>
       </table>
     </div>
@@ -520,7 +523,7 @@
   // ── Orders fetch ─────────────────────────────────────────────────────────────
   async function fetchData() {
     const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '<tr><td colspan="9" class="loader">Fetching data from Google Sheets...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="loader">Fetching data from Google Sheets...</td></tr>';
     try {
       const response = await fetch(`${API_URL}?action=fetchOrders`, { method: 'GET' });
       const result = await response.json();
@@ -528,12 +531,12 @@
         rawOrders = result.data;
         renderFilteredData();
       } else {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:red;padding:20px;">
           Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
       }
     } catch (err) {
       console.error("Fetch Error:", err);
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:red;padding:20px;">
         Failed to load data.<br>
         <small style="color:#64748b;">Please verify your Google Apps Script deployment is active
         and set to <b>"Anyone"</b>.</small></td></tr>`;
@@ -705,7 +708,7 @@
     tbody.innerHTML = '';
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:25px;color:#94a3b8;">
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:25px;color:#94a3b8;">
         ${currentUser.role === 'USER' ? 'No orders assigned to you yet.' : 'No matching orders found.'}
       </td></tr>`;
       return;
@@ -774,9 +777,6 @@
           <button onclick="uploadDocument(${item.rowIndex})" style="margin-top:4px;width:100%;">Upload</button>`;
       }
 
-      const statusLabel = isCourier ? 'Uploaded' : item.status;
-      const statusClass = isCourier ? 'Uploaded' : item.status;
-
       const detailsBtn = isUploaded
         ? `<br><button id="dtbtn_${item.rowIndex}" onclick="toggleDetail(${item.rowIndex})"
             style="margin-top:5px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;
@@ -789,11 +789,12 @@
         <td><strong style="font-size:12px;line-height:1.4;">${item.docNo}</strong></td>
         <td><small style="font-size:11px;">${item.date}</small></td>
         <td><strong style="font-size:12px;">${item.party}</strong></td>
-        <td><div class="items-box">${item.items}</div></td>
+        <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${item.invoiceAmount || '—'}</small></td>
+        <td><small style="font-size:11px;color:#334155;">${item.location || '—'}</small></td>
+        <td><small style="font-size:11px;color:#334155;">${item.phone || '—'}</small></td>
         <td><small style="color:#334155;font-weight:600;">${item.salesPerson || '—'}</small></td>
         <td>${assignHtml}</td>
-        <td><span class="badge ${statusClass}">${statusLabel}</span>${detailsBtn}</td>
-        <td id="act_${item.rowIndex}">${actionHtml}</td>
+        <td id="act_${item.rowIndex}">${actionHtml}${detailsBtn}</td>
       `;
       tbody.appendChild(tr);
 
@@ -822,7 +823,7 @@
         detRow.id = `det_${item.rowIndex}`;
         detRow.style.display = 'none';
         detRow.innerHTML = `
-          <td colspan="9" style="padding:0;">
+          <td colspan="10" style="padding:0;">
             <div style="padding:10px 20px;display:flex;gap:28px;align-items:center;
                         background:#eff6ff;border-top:1px solid #bfdbfe;flex-wrap:wrap;">
               <div>
