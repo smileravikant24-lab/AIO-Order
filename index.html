@@ -121,6 +121,12 @@
     /* ── Attachment date mandatory highlight ── */
     .att-date-required { border-color: #fca5a5 !important; }
 
+    /* ── Live auto-refresh indicator ── */
+    .live-dot { width: 7px; height: 7px; background: #16a34a; border-radius: 50%; display: inline-block; animation: livePulse 2s ease-in-out infinite; }
+    @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+    #liveLabel { font-size: 11px; color: #16a34a; font-weight: 600; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    #lastUpdatedText { font-size: 10px; color: #64748b; font-weight: 400; }
+
     /* ── Sample entry blocked (user role) ── */
     .entry-blocked {
       text-align: center; padding: 28px; color: #94a3b8;
@@ -138,7 +144,10 @@
   <div class="tab-nav sticky-top">
     <button class="tab-btn active" id="tab-orders" onclick="switchTab('orders')">📋 Orders</button>
     <button class="tab-btn" id="tab-sample" onclick="switchTab('sample')">🧪 Sample</button>
-    <div id="userBadge" class="user-badge" style="margin-left:auto;white-space:nowrap;">Role: Authenticating...</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+      <span id="liveLabel"><span class="live-dot"></span> Live <span id="lastUpdatedText"></span></span>
+      <div id="userBadge" class="user-badge" style="white-space:nowrap;">Role: Authenticating...</div>
+    </div>
   </div>
 
   <!-- ══════════════════════ ORDERS TAB ══════════════════════ -->
@@ -347,6 +356,19 @@
     return n.toLocaleString('en-IN');
   }
 
+  function fmtDate(val) {
+    if (!val) return '—';
+    const d = new Date(val);
+    if (isNaN(d)) return val;
+    return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+  }
+  function fmtDateInput(val) {
+    if (!val) return '';
+    const d = new Date(val);
+    if (isNaN(d)) return '';
+    return d.toISOString().slice(0, 10);
+  }
+
   function parseItemDate(str) {
     if (!str) return null;
     const m = String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -379,7 +401,7 @@
     document.getElementById('tab-sample').classList.toggle('active',  tab === 'sample');
     if (tab === 'sample') {
       updateSampleFormAccess();
-      if (rawSamples.length === 0) fetchSamples();
+      if (rawSamples.length === 0) fetchSamples(); else silentFetchSamples();
     }
     updateTableHeight();
   }
@@ -390,6 +412,7 @@
     fetchPartyMaster();
     updateTableHeight();
     window.addEventListener('resize', updateTableHeight);
+    startAutoRefresh();
   };
 
   function initAuthAndRenderUI() {
@@ -525,6 +548,7 @@
       if (result && result.success) {
         rawOrders = result.data;
         renderFilteredData();
+        _setLastUpdated();
       } else {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">
           Server Error: ${result ? result.error : 'Unknown response format'}</td></tr>`;
@@ -586,10 +610,10 @@
       let handoverCell = '', handoverDateCell = '';
       if (currentUser && currentUser.role === 'USER' && s.rowIndex) {
         handoverCell = `<td><input type="text" id="ht_${s.rowIndex}" value="${(s.handoverTo||'').replace(/"/g,'&quot;')}" style="width:100%;font-size:11px;padding:3px 5px;border:1px solid #cbd5e1;border-radius:4px;" placeholder="Kise diya..."/></td>`;
-        handoverDateCell = `<td style="white-space:nowrap;"><input type="date" id="hd_${s.rowIndex}" value="${s.handoverDate||''}" style="font-size:11px;padding:2px 4px;border:1px solid #cbd5e1;border-radius:4px;width:120px;"><br><button onclick="saveHandover(${s.rowIndex})" style="margin-top:3px;font-size:10px;padding:2px 7px;background:#1e40af;color:#fff;border:none;border-radius:4px;cursor:pointer;">Save</button></td>`;
+        handoverDateCell = `<td style="white-space:nowrap;"><input type="date" id="hd_${s.rowIndex}" value="${fmtDateInput(s.handoverDate)}" style="font-size:11px;padding:2px 4px;border:1px solid #cbd5e1;border-radius:4px;width:120px;"><br><button onclick="saveHandover(${s.rowIndex})" style="margin-top:3px;font-size:10px;padding:2px 7px;background:#1e40af;color:#fff;border:none;border-radius:4px;cursor:pointer;">Save</button></td>`;
       } else {
         handoverCell = `<td><small style="color:#334155;">${s.handoverTo || '—'}</small></td>`;
-        handoverDateCell = `<td><small style="color:#334155;">${s.handoverDate || '—'}</small></td>`;
+        handoverDateCell = `<td><small style="color:#334155;">${fmtDate(s.handoverDate)}</small></td>`;
       }
 
       tr.innerHTML = `
@@ -627,11 +651,11 @@
         if (rec) { rec.handoverTo = handoverTo; rec.handoverDate = handoverDate; }
         setTimeout(() => { btn.disabled = false; btn.textContent = 'Save'; btn.style.background = '#1e40af'; }, 2000);
       } else {
-        alert('Error: ' + (res ? res.error : 'Unknown'));
+        showToast('Error: ' + (res ? res.error : 'Unknown'), 'error');
         btn.disabled = false; btn.textContent = 'Save';
       }
     } catch (err) {
-      alert('Network error. Try again.');
+      showToast('Network error. Try again.', 'error');
       btn.disabled = false; btn.textContent = 'Save';
     }
   }
@@ -645,14 +669,14 @@
     const remarks       = document.getElementById('s_remarks').value.trim();
     const salesPerson   = sendMode !== 'courier' ? sendMode : '';
 
-    if (!partyName) { alert('Party Name is required.'); document.getElementById('s_partyName').focus(); return; }
+    if (!partyName) { showToast('Party Name is required.', 'warning'); document.getElementById('s_partyName').focus(); return; }
 
     let handoverBill = '', courierDate = '', courierSender = '';
     if (sendMode === 'courier') {
       courierDate   = document.getElementById('s_courierDate').value;
       courierSender = document.getElementById('s_courierSender').value.trim();
-      if (!courierDate)   { alert('Courier Date is required.'); document.getElementById('s_courierDate').focus(); return; }
-      if (!courierSender) { alert('Sender name is required for courier.'); document.getElementById('s_courierSender').focus(); return; }
+      if (!courierDate)   { showToast('Courier Date is required.', 'warning'); document.getElementById('s_courierDate').focus(); return; }
+      if (!courierSender) { showToast('Sender name is required for courier.', 'warning'); document.getElementById('s_courierSender').focus(); return; }
     }
 
     const btn = document.getElementById('s_submitBtn');
@@ -694,11 +718,11 @@
         suc.style.display = 'inline-block';
         setTimeout(() => { suc.style.display = 'none'; }, 3000);
       } else {
-        alert('Error saving sample: ' + (res ? res.error : 'Unknown error'));
+        showToast('Error saving sample: ' + (res ? res.error : 'Unknown error'), 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Network error. Please try again.');
+      showToast('Network error. Please try again.', 'error');
     }
     btn.disabled = false;
     btn.textContent = 'Submit Sample';
@@ -1054,6 +1078,40 @@
       showToast('Error removing document. Please try again.', 'error');
       cancelRemoveDoc(rowIndex);
     }
+  }
+
+  // ── Auto-refresh (silent background polling) ─────────────────────────────────
+  let _refreshInterval = null;
+
+  function _setLastUpdated() {
+    const el = document.getElementById('lastUpdatedText');
+    if (!el) return;
+    const now = new Date();
+    el.textContent = `· ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  }
+
+  async function silentFetchOrders() {
+    try {
+      const res = await fetch(`${API_URL}?action=fetchOrders`, { method: 'GET' });
+      const result = await res.json();
+      if (result && result.success) { rawOrders = result.data; renderFilteredData(); _setLastUpdated(); }
+    } catch (_) {}
+  }
+
+  async function silentFetchSamples() {
+    try {
+      const res = await fetch(`${API_URL}?action=fetchSamples`, { method: 'GET' });
+      const result = await res.json();
+      if (result && result.success) { rawSamples = result.data || []; renderSampleTable(); _setLastUpdated(); }
+    } catch (_) {}
+  }
+
+  function startAutoRefresh() {
+    _setLastUpdated();
+    _refreshInterval = setInterval(() => {
+      silentFetchOrders();
+      if (activeTab === 'sample') silentFetchSamples();
+    }, 60000); // every 60 seconds
   }
 
   // ── Toast notifications ──────────────────────────────────────────────────────
