@@ -346,6 +346,12 @@
     'Direct Dispatch': new Date(2026, 7, 1)
   };
 
+  function fmtINR(v) {
+    const n = parseInt(v);
+    if (!v || isNaN(n)) return v || '—';
+    return n.toLocaleString('en-IN');
+  }
+
   function parseItemDate(str) {
     if (!str) return null;
     const m = String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -789,7 +795,7 @@
           <strong style="font-size:12px;">${item.party}</strong>
           ${item.location ? `<br><small style="font-size:10px;color:#64748b;">${item.location}</small>` : ''}
         </td>
-        <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${item.invoiceAmount || '—'}</small></td>
+        <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${fmtINR(item.invoiceAmount)}</small></td>
         <td><small style="font-size:11px;color:#334155;">${item.phone || '—'}</small></td>
         <td><small style="color:#334155;font-weight:600;">${item.salesPerson || '—'}</small></td>
         <td>${assignHtml}</td>
