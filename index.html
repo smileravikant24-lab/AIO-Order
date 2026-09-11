@@ -241,7 +241,6 @@
           <div class="form-group">
             <label>Send Mode *</label>
             <select id="s_sendMode" onchange="toggleSendMode()">
-              <option value="person">By Person</option>
               <option value="courier">By Courier (Post)</option>
               <option value="Mr. Pranav Satija">Mr. Pranav Satija</option>
               <option value="Mr. Mukesh Shukla">Mr. Mukesh Shukla</option>
@@ -249,13 +248,6 @@
               <option value="Mr. Pawan Negi">Mr. Pawan Negi</option>
               <option value="Mr. Sonu Chauhan">Mr. Sonu Chauhan</option>
             </select>
-          </div>
-
-          <!-- Who to Handover Bill (shown when By Person selected) -->
-          <div class="form-group" id="senderPersonGroup">
-            <label>Who to Handover Bill</label>
-            <input type="text" id="s_handoverBill"
-              placeholder="Type name…" />
           </div>
 
           <!-- Courier fields (shown when courier selected) -->
@@ -516,11 +508,8 @@
   // ── Send mode toggle (Person / Courier) ──────────────────────────────────────
   function toggleSendMode() {
     const mode = document.getElementById('s_sendMode').value;
-    const isCourier = mode === 'courier';
-    const isNamedPerson = mode !== 'person' && mode !== 'courier';
-    document.getElementById('senderPersonGroup').style.display = (isCourier || isNamedPerson) ? 'none' : '';
     const wrap = document.getElementById('courierFieldsWrap');
-    wrap.classList.toggle('show', isCourier);
+    wrap.classList.toggle('show', mode === 'courier');
   }
 
   // ── Orders fetch ─────────────────────────────────────────────────────────────
@@ -569,12 +558,15 @@
   // ── Sample table render ──────────────────────────────────────────────────────
   function renderSampleTable() {
     const tbody = document.getElementById('sampleTableBody');
-    if (!rawSamples.length) {
+    const samples = (currentUser && currentUser.role === 'USER')
+      ? rawSamples.filter(s => s.sendMode === currentUser.assignKey)
+      : rawSamples;
+    if (!samples.length) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:25px;color:#94a3b8;">No sample records found.</td></tr>';
       return;
     }
     tbody.innerHTML = '';
-    rawSamples.forEach((s, idx) => {
+    samples.forEach((s, idx) => {
       const tr = document.createElement('tr');
 
       // Build send-mode cell
@@ -584,14 +576,12 @@
         if (s.courierDate)   sendCell += `<br><small style="color:#475569;">📅 ${s.courierDate}</small>`;
         if (s.courierSender) sendCell += `<br><small style="color:#475569;">👤 ${s.courierSender}</small>`;
       } else {
-        const displayName = (s.sendMode && s.sendMode !== 'person')
-          ? s.sendMode
-          : (s.handoverBill || s.sendName || '—');
+        const displayName = s.sendMode || s.sendName || '—';
         sendCell = `<span style="color:var(--primary);font-weight:600;">${displayName}</span>`;
       }
 
       tr.innerHTML = `
-        <td><strong>${rawSamples.length - idx}</strong></td>
+        <td><strong>${samples.length - idx}</strong></td>
         <td><small>${s.timestamp || '—'}</small></td>
         <td><strong>${s.partyName || '—'}</strong></td>
         <td>${s.contactPerson || '—'}</td>
@@ -610,7 +600,7 @@
     const phone         = document.getElementById('s_phone').value.trim();
     const sendMode      = document.getElementById('s_sendMode').value;
     const remarks       = document.getElementById('s_remarks').value.trim();
-    const salesPerson   = (sendMode !== 'person' && sendMode !== 'courier') ? sendMode : '';
+    const salesPerson   = sendMode !== 'courier' ? sendMode : '';
 
     if (!partyName) { alert('Party Name is required.'); document.getElementById('s_partyName').focus(); return; }
 
@@ -620,8 +610,6 @@
       courierSender = document.getElementById('s_courierSender').value.trim();
       if (!courierDate)   { alert('Courier Date is required.'); document.getElementById('s_courierDate').focus(); return; }
       if (!courierSender) { alert('Sender name is required for courier.'); document.getElementById('s_courierSender').focus(); return; }
-    } else {
-      handoverBill = document.getElementById('s_handoverBill').value.trim();
     }
 
     const btn = document.getElementById('s_submitBtn');
@@ -653,10 +641,10 @@
         });
         renderSampleTable();
         // Clear form
-        ['s_partyName','s_contactPerson','s_phone','s_remarks','s_courierSender','s_handoverBill'].forEach(id => {
+        ['s_partyName','s_contactPerson','s_phone','s_remarks','s_courierSender'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
-        document.getElementById('s_sendMode').value  = 'person';
+        document.getElementById('s_sendMode').value  = 'courier';
         document.getElementById('s_courierDate').value = '';
         toggleSendMode();
         const suc = document.getElementById('s_success');
