@@ -34,8 +34,8 @@
     col.col-type     { width: 6%; }
     col.col-invoice  { width: 12%; }
     col.col-date     { width: 9%; }
-    col.col-party    { width: 18%; }
     col.col-amount   { width: 8%; }
+    col.col-party    { width: 18%; }
     col.col-phone    { width: 7%; }
     col.col-sales    { width: 8%; }
     col.col-assign   { width: 13%; }
@@ -180,8 +180,8 @@
           <col class="col-type">
           <col class="col-invoice">
           <col class="col-date">
-          <col class="col-party">
           <col class="col-amount">
+          <col class="col-party">
           <col class="col-phone">
           <col class="col-sales">
           <col class="col-assign">
@@ -192,8 +192,8 @@
             <th>Type</th>
             <th>Invoice No.</th>
             <th>Date &amp; Time</th>
-            <th>Party Details</th>
             <th>Inv. Amount</th>
+            <th>Party Details</th>
             <th>Phone</th>
             <th>Sales Person</th>
             <th>Assigned To</th>
@@ -321,8 +321,8 @@
           <col class="col-type">
           <col class="col-invoice">
           <col class="col-date">
-          <col class="col-party">
           <col class="col-amount">
+          <col class="col-party">
           <col class="col-phone">
           <col class="col-sales">
           <col class="col-assign">
@@ -333,12 +333,12 @@
             <th>Type</th>
             <th>Invoice No.</th>
             <th>Date &amp; Time</th>
-            <th>Party Details</th>
             <th>Inv. Amount</th>
+            <th>Party Details</th>
             <th>Phone</th>
             <th>Sales Person</th>
             <th>Assigned To</th>
-            <th>Saved On</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="postedTableBody">
@@ -663,11 +663,11 @@
         <td><span class="badge ${tagClass}" style="font-size:10px;white-space:nowrap;">${p.docType === 'Sales Order' ? 'Sales' : 'Dispatch'}</span></td>
         <td><strong style="font-size:12px;line-height:1.4;">${p.docNo}</strong></td>
         <td><small style="font-size:11px;">${p.date || '—'}</small></td>
+        <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${fmtINR(p.invoiceAmount)}</small></td>
         <td>
           <strong style="font-size:12px;">${p.party || '—'}</strong>
           ${p.location ? `<br><small style="font-size:10px;color:#64748b;">${p.location}</small>` : ''}
         </td>
-        <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${fmtINR(p.invoiceAmount)}</small></td>
         <td><small style="font-size:11px;color:#334155;">${p.phone || '—'}</small></td>
         <td><small style="color:#334155;font-weight:600;">${p.salesPerson || '—'}</small></td>
         <td><small style="color:#475569;">${p.assignedTo || '—'}</small></td>
@@ -941,11 +941,11 @@
         <td><span class="badge ${tagClass}" style="font-size:10px;white-space:nowrap;">${item.docType === 'Sales Order' ? 'Sales' : 'Dispatch'}</span></td>
         <td><strong style="font-size:12px;line-height:1.4;">${item.docNo}</strong></td>
         <td><small style="font-size:11px;">${item.date}</small></td>
+        <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${fmtINR(item.invoiceAmount)}</small></td>
         <td>
           <strong style="font-size:12px;">${item.party}</strong>
           ${item.location ? `<br><small style="font-size:10px;color:#64748b;">${item.location}</small>` : ''}
         </td>
-        <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${fmtINR(item.invoiceAmount)}</small></td>
         <td><small style="font-size:11px;color:#334155;">${item.phone || '—'}</small></td>
         <td><small style="color:#334155;font-weight:600;">${item.salesPerson || '—'}</small></td>
         <td>${assignHtml}</td>
