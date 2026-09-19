@@ -355,11 +355,13 @@
   const PARTY_MASTER_SHEET_ID = "1R1eMFIwOdN5CyfrZa0K8NSVaJZnVmjPd95bOp2FYz90";
 
   const USERS = {
-    "ADMIN":   { name: "Khushi Painter (Admin)",    role: "ADMIN",   viewAll: true,  canAssign: true  },
-    "MANAGER": { name: "Mukesh Shukla (Manager)",   role: "MANAGER", viewAll: true,  canAssign: true  },
-    "PAWAN":   { name: "Mr. Pawan Negi",            role: "USER",    assignKey: "Mr. Pawan Negi",   viewAll: false, canAssign: false },
-    "SONU":    { name: "Mr. Sonu Chauhan",          role: "USER",    assignKey: "Mr. Sonu Chauhan", viewAll: false, canAssign: false },
-    "RISHABH": { name: "Mr. Rishabh Jain",          role: "USER",    assignKey: "Mr. Rishabh Jain", viewAll: false, canAssign: false }
+    "ADMIN":    { name: "Khushi Painter (Admin)",    role: "ADMIN",   viewAll: true,  canAssign: true,  readOnly: false },
+    "MANAGER":  { name: "Mukesh Shukla (Manager)",   role: "MANAGER", viewAll: true,  canAssign: true,  readOnly: false },
+    "VIEWER":   { name: "Manager (View Only)",       role: "VIEWER",  viewAll: true,  canAssign: false, readOnly: true },
+    "READONLY": { name: "Manager (View Only)",       role: "VIEWER",  viewAll: true,  canAssign: false, readOnly: true },
+    "PAWAN":    { name: "Mr. Pawan Negi",            role: "USER",    assignKey: "Mr. Pawan Negi",   viewAll: false, canAssign: false, readOnly: false },
+    "SONU":     { name: "Mr. Sonu Chauhan",          role: "USER",    assignKey: "Mr. Sonu Chauhan", viewAll: false, canAssign: false, readOnly: false },
+    "RISHABH":  { name: "Mr. Rishabh Jain",          role: "USER",    assignKey: "Mr. Rishabh Jain", viewAll: false, canAssign: false, readOnly: false }
   };
 
   const ASSIGNABLE_USERS = [
@@ -449,9 +451,14 @@
   function initAuthAndRenderUI() {
     const urlParams = new URLSearchParams(window.location.search);
     const userParam = (urlParams.get('user') || '').toUpperCase();
+    const modeParam = (urlParams.get('mode') || urlParams.get('view') || urlParams.get('role') || '').toUpperCase();
     const authBox = document.getElementById('authContainer');
 
-    currentUser = (userParam && USERS[userParam]) ? USERS[userParam] : USERS["ADMIN"];
+    if (modeParam === 'READONLY' || modeParam === 'VIEWER' || modeParam === 'VIEW' || modeParam === 'READ' || userParam === 'VIEWER' || userParam === 'READONLY') {
+      currentUser = USERS["VIEWER"];
+    } else {
+      currentUser = (userParam && USERS[userParam]) ? USERS[userParam] : USERS["ADMIN"];
+    }
 
     document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
 
@@ -467,27 +474,36 @@
         <div class="form-group">
           <label>Management View:</label>
           <select id="userSelector" onchange="switchManagementUser(this.value)">
-            <option value="ADMIN"   ${currentUser.role === 'ADMIN'   ? 'selected' : ''}>Khushi Painter (Admin)</option>
-            <option value="MANAGER" ${currentUser.role === 'MANAGER' ? 'selected' : ''}>Mukesh Shukla (Manager)</option>
+            <option value="ADMIN"   ${currentUser.role === 'ADMIN' && !currentUser.readOnly ? 'selected' : ''}>Khushi Painter (Admin)</option>
+            <option value="MANAGER" ${currentUser.role === 'MANAGER' && !currentUser.readOnly ? 'selected' : ''}>Mukesh Shukla (Manager)</option>
+            <option value="VIEWER"  ${currentUser.role === 'VIEWER' ? 'selected' : ''}>Manager (View Only)</option>
           </select>
         </div>`;
     }
   }
 
   function switchManagementUser(val) {
-    currentUser = USERS[val];
+    currentUser = USERS[val] || USERS["VIEWER"];
     document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
     renderFilteredData();
+    if (activeTab === 'sample') renderSampleTable();
     updateSampleFormAccess();
   }
 
-  // ── Sample form access (Admin/Manager only) ──────────────────────────────────
+  // ── Sample form access (Admin/Manager only, disabled in Read-Only) ────────────
   function updateSampleFormAccess() {
-    const canCreate = currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER';
+    const canCreate = (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') && !currentUser.readOnly;
     const formEl    = document.getElementById('sampleEntryForm');
     const blockedEl = document.getElementById('sampleEntryBlocked');
     if (formEl)    formEl.style.display    = canCreate ? '' : 'none';
-    if (blockedEl) blockedEl.style.display = 'none';
+    if (blockedEl) {
+      if (currentUser.readOnly) {
+        blockedEl.style.display = '';
+        blockedEl.innerHTML = '<div style="padding:12px 16px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;font-size:13px;font-weight:600;">👁️ <strong>Read-Only Mode:</strong> You are viewing in Manager View-Only mode. All entries and edits are disabled.</div>';
+      } else {
+        blockedEl.style.display = 'none';
+      }
+    }
   }
 
   // ── Party Master (Google Sheets) ─────────────────────────────────────────────
@@ -877,19 +893,24 @@
       const tagClass = item.docType === 'Sales Order' ? 'type-sales' : 'type-dispatch';
 
       let assignHtml = '';
-      if (currentUser.canAssign) {
-        let options = `<option value="Unassigned" ${item.assignedTo === 'Unassigned' ? 'selected' : ''}>Unassigned</option>`;
+      if (currentUser.canAssign && !currentUser.readOnly) {
+        let options = `<option value="Unassigned" ${item.assignedTo === 'Unassigned' || !item.assignedTo ? 'selected' : ''}>Unassigned</option>`;
         ASSIGNABLE_USERS.forEach(u => {
           options += `<option value="${u}" ${item.assignedTo === u ? 'selected' : ''}>${u}</option>`;
         });
+        const isCustomAssign = item.assignedTo && !ASSIGNABLE_USERS.includes(item.assignedTo) && item.assignedTo !== 'Unassigned' && !isCourier;
+        if (isCustomAssign) {
+          options += `<option value="${item.assignedTo.replace(/"/g, '&quot;')}" selected>👤 ${item.assignedTo}</option>`;
+        }
         options += `<option disabled>──────────</option>`;
+        options += `<option value="OTHER_CUSTOM">✍️ ➕ Other (Type Name)...</option>`;
         options += `<option value="${BY_COURIER}" ${isCourier ? 'selected' : ''}>📮 By Courier (Post)</option>`;
-        assignHtml = `<select onchange="updateAssign(${item.rowIndex}, this.value)">${options}</select>`;
+        assignHtml = `<select onchange="handleAssignChange(${item.rowIndex}, this.value)">${options}</select>`;
       } else {
-        assignHtml = `<strong style="color:var(--primary);">${item.assignedTo}</strong>`;
+        assignHtml = `<strong style="color:var(--primary);">${item.assignedTo || '—'}</strong>`;
       }
 
-      const canModifyDoc = currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER';
+      const canModifyDoc = (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') && !currentUser.readOnly;
 
       let actionHtml = '';
       if (isCourier) {
@@ -918,6 +939,8 @@
                 style="background:#dc2626;font-size:10px;padding:3px 7px;">🗑 Remove</button>
             </div>`;
         }
+      } else if (currentUser.readOnly) {
+        actionHtml = `<span class="badge Pending" style="font-size:11px;">⏳ Pending (View Only)</span>`;
       } else {
         // Pending: mandatory attachment date + file upload
         actionHtml = `
@@ -1002,6 +1025,19 @@
   }
 
   // ── Assign order ──────────────────────────────────────────────────────────────
+  async function handleAssignChange(rowIndex, val) {
+    if (val === 'OTHER_CUSTOM') {
+      const customName = prompt('Enter Assignee / Person Name to assign:');
+      if (!customName || !customName.trim()) {
+        renderFilteredData();
+        return;
+      }
+      updateAssign(rowIndex, customName.trim());
+    } else {
+      updateAssign(rowIndex, val);
+    }
+  }
+
   async function updateAssign(rowIndex, assignTo) {
     const byPost = (assignTo === BY_COURIER);
     try {
