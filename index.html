@@ -26,20 +26,52 @@
     select:focus, input:focus, textarea:focus { border-color: var(--primary); }
 
     .table-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); background: var(--card-bg); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-width: 700px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-width: 1100px; }
     th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; overflow-wrap: break-word; word-break: break-word; }
     th { background: #f1f5f9; font-weight: 600; color: #334155; position: sticky; top: 0; z-index: 10; }
     tr:hover { background: #f8fafc; }
+
+    /* Table input & select constraints to prevent column overflow */
+    td select {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 5px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      color: #1e293b;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+      background: white;
+      cursor: pointer;
+    }
+    td select:focus { border-color: var(--primary); outline: none; }
+    td input[type="file"], td input[type="date"], td input[type="text"] {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Party Details Wrapping */
+    .party-cell {
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      white-space: normal !important;
+      line-height: 1.35;
+    }
+
     /* Orders table column widths (percentage-based for full-width) */
     col.col-type     { width: 6%; }
-    col.col-invoice  { width: 12%; }
+    col.col-invoice  { width: 11%; }
     col.col-date     { width: 9%; }
     col.col-amount   { width: 8%; }
-    col.col-party    { width: 18%; }
-    col.col-phone    { width: 7%; }
+    col.col-party    { width: 22%; }
+    col.col-phone    { width: 8%; }
     col.col-sales    { width: 8%; }
-    col.col-assign   { width: 13%; }
-    col.col-action   { width: 19%; }
+    col.col-assign   { width: 14%; }
+    col.col-action   { width: 14%; }
 
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-block; }
     .Pending   { background: #fef3c7; color: #92400e; }
@@ -700,13 +732,13 @@
         <td><strong style="font-size:12px;line-height:1.4;">${p.docNo}</strong></td>
         <td><small style="font-size:11px;">${p.date || '—'}</small></td>
         <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${fmtINR(p.invoiceAmount)}</small></td>
-        <td>
-          <strong style="font-size:12px;">${p.party || '—'}</strong>
-          ${p.location ? `<br><small style="font-size:10px;color:#64748b;">${p.location}</small>` : ''}
+        <td class="party-cell">
+          <strong style="font-size:12px;display:block;word-break:break-word;overflow-wrap:anywhere;">${p.party || '—'}</strong>
+          ${p.location ? `<small style="font-size:10px;color:#64748b;display:block;margin-top:2px;word-break:break-word;overflow-wrap:anywhere;">${p.location}</small>` : ''}
         </td>
         <td><small style="font-size:11px;color:#334155;">${p.phone || '—'}</small></td>
         <td><small style="color:#334155;font-weight:600;">${p.salesPerson || '—'}</small></td>
-        <td><small style="color:#475569;">${p.assignedTo || '—'}</small></td>
+        <td style="max-width:100%;overflow:hidden;text-overflow:ellipsis;"><small style="color:#475569;font-weight:600;">${p.assignedTo || '—'}</small></td>
         <td><small style="font-size:11px;color:#64748b;">${p.savedOn || '—'}</small></td>
       `;
       tbody.appendChild(tr);
@@ -985,13 +1017,13 @@
         <td><strong style="font-size:12px;line-height:1.4;">${item.docNo}</strong></td>
         <td><small style="font-size:11px;">${item.date}</small></td>
         <td><small style="font-size:12px;font-weight:600;color:#0f172a;">${fmtINR(item.invoiceAmount)}</small></td>
-        <td>
-          <strong style="font-size:12px;">${item.party}</strong>
-          ${item.location ? `<br><small style="font-size:10px;color:#64748b;">${item.location}</small>` : ''}
+        <td class="party-cell">
+          <strong style="font-size:12px;display:block;word-break:break-word;overflow-wrap:anywhere;">${item.party}</strong>
+          ${item.location ? `<small style="font-size:10px;color:#64748b;display:block;margin-top:2px;word-break:break-word;overflow-wrap:anywhere;">${item.location}</small>` : ''}
         </td>
         <td><small style="font-size:11px;color:#334155;">${item.phone || '—'}</small></td>
         <td><small style="color:#334155;font-weight:600;">${item.salesPerson || '—'}</small></td>
-        <td>${assignHtml}</td>
+        <td style="max-width:100%;overflow:hidden;">${assignHtml}</td>
         <td id="act_${item.rowIndex}">${actionHtml}${detailsBtn}</td>
       `;
       tbody.appendChild(tr);
