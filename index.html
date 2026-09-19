@@ -379,6 +379,7 @@
   let partyMasterData = [];
   let currentUser = USERS["ADMIN"];
   let activeTab = 'orders';
+  let isUrlReadOnly = false;
 
   const DATE_CUTOFF = {
     'Sales Order':     new Date(2026, 8, 16),
@@ -446,6 +447,11 @@
     fetchPartyMaster();
     updateTableHeight();
     window.addEventListener('resize', updateTableHeight);
+    if (isUrlReadOnly) {
+      setTimeout(() => {
+        showToast('👁️ Manager View-Only Mode Active (Read-Only)', 'info', 4000);
+      }, 400);
+    }
   };
 
   function initAuthAndRenderUI() {
@@ -456,13 +462,22 @@
 
     if (modeParam === 'READONLY' || modeParam === 'VIEWER' || modeParam === 'VIEW' || modeParam === 'READ' || userParam === 'VIEWER' || userParam === 'READONLY') {
       currentUser = USERS["VIEWER"];
+      isUrlReadOnly = true;
     } else {
       currentUser = (userParam && USERS[userParam]) ? USERS[userParam] : USERS["ADMIN"];
+      isUrlReadOnly = false;
     }
 
     document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
 
-    if (currentUser.role === 'USER') {
+    if (isUrlReadOnly) {
+      authBox.innerHTML = `
+        <div class="form-group">
+          <label>View Mode:</label>
+          <input type="text" value="👁️ Manager (View Only)" disabled
+            style="background:#eff6ff; font-weight:700; color:#1e40af; border:1px solid #bfdbfe;" />
+        </div>`;
+    } else if (currentUser.role === 'USER') {
       authBox.innerHTML = `
         <div class="form-group">
           <label>Logged-in Executive:</label>
@@ -483,11 +498,16 @@
   }
 
   function switchManagementUser(val) {
+    if (isUrlReadOnly) {
+      showToast('⚠️ Mode switching is disabled in Read-Only URL mode.', 'warning');
+      return;
+    }
     currentUser = USERS[val] || USERS["VIEWER"];
     document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
     renderFilteredData();
     if (activeTab === 'sample') renderSampleTable();
     updateSampleFormAccess();
+    showToast(`Switched view to ${currentUser.name}`, 'info');
   }
 
   // ── Sample form access (Admin/Manager only, disabled in Read-Only) ────────────
