@@ -389,6 +389,7 @@
   const USERS = {
     "ADMIN":    { name: "Khushi Painter (Admin)",    role: "ADMIN",   viewAll: true,  canAssign: true,  readOnly: false },
     "MANAGER":  { name: "Mukesh Shukla (Manager)",   role: "MANAGER", viewAll: true,  canAssign: true,  readOnly: false },
+    "POOJA":    { name: "Pooja (Manager)",            role: "MANAGER", viewAll: true,  canAssign: true,  readOnly: false, independent: true },
     "VIEWER":   { name: "Manager (View Only)",       role: "VIEWER",  viewAll: true,  canAssign: false, readOnly: true },
     "READONLY": { name: "Manager (View Only)",       role: "VIEWER",  viewAll: true,  canAssign: false, readOnly: true },
     "PAWAN":    { name: "Mr. Pawan Negi",            role: "USER",    assignKey: "Mr. Pawan Negi",   viewAll: false, canAssign: false, readOnly: false },
@@ -500,7 +501,13 @@
       isUrlReadOnly = false;
     }
 
-    document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
+    if (userParam && !isUrlReadOnly) {
+      document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
+    } else if (isUrlReadOnly) {
+      document.getElementById('userBadge').innerText = `👁️ Manager (View Only) [READ]`;
+    } else {
+      document.getElementById('userBadge').innerText = `🏢 FMS Portal`;
+    }
 
     if (isUrlReadOnly) {
       authBox.innerHTML = `
@@ -509,21 +516,26 @@
           <input type="text" value="👁️ Manager (View Only)" disabled
             style="background:#eff6ff; font-weight:700; color:#1e40af; border:1px solid #bfdbfe;" />
         </div>`;
-    } else if (currentUser.role === 'USER') {
+    } else if (currentUser.role === 'USER' || currentUser.independent) {
       authBox.innerHTML = `
         <div class="form-group">
-          <label>Logged-in Executive:</label>
+          <label>Logged-in As:</label>
           <input type="text" value="${currentUser.name}" disabled
             style="background:#f1f5f9; font-weight:600; color:var(--primary);" />
         </div>`;
     } else {
+      const adminSel   = userParam === 'ADMIN'   ? 'selected' : '';
+      const managerSel = userParam === 'MANAGER' ? 'selected' : '';
+      const viewerSel  = (userParam === 'VIEWER' || userParam === 'READONLY') ? 'selected' : '';
+      const noneSel    = (!adminSel && !managerSel && !viewerSel) ? 'selected' : '';
       authBox.innerHTML = `
         <div class="form-group">
           <label>Management View:</label>
           <select id="userSelector" onchange="switchManagementUser(this.value)">
-            <option value="ADMIN"   ${currentUser.role === 'ADMIN' && !currentUser.readOnly ? 'selected' : ''}>Khushi Painter (Admin)</option>
-            <option value="MANAGER" ${currentUser.role === 'MANAGER' && !currentUser.readOnly ? 'selected' : ''}>Mukesh Shukla (Manager)</option>
-            <option value="VIEWER"  ${currentUser.role === 'VIEWER' ? 'selected' : ''}>Manager (View Only)</option>
+            <option value="" disabled hidden ${noneSel}>— Select Role —</option>
+            <option value="ADMIN"   ${adminSel}>Khushi Painter (Admin)</option>
+            <option value="MANAGER" ${managerSel}>Mukesh Shukla (Manager)</option>
+            <option value="VIEWER"  ${viewerSel}>Manager (View Only)</option>
           </select>
         </div>`;
     }
