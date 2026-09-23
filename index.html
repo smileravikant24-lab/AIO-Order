@@ -501,7 +501,13 @@
       isUrlReadOnly = false;
     }
 
-    document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
+    if (userParam && !isUrlReadOnly) {
+      document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
+    } else if (isUrlReadOnly) {
+      document.getElementById('userBadge').innerText = `👁️ Manager (View Only) [READ]`;
+    } else {
+      document.getElementById('userBadge').innerText = `🏢 FMS Portal`;
+    }
 
     if (isUrlReadOnly) {
       authBox.innerHTML = `
@@ -518,13 +524,18 @@
             style="background:#f1f5f9; font-weight:600; color:var(--primary);" />
         </div>`;
     } else {
+      const adminSel   = userParam === 'ADMIN'   ? 'selected' : '';
+      const managerSel = userParam === 'MANAGER' ? 'selected' : '';
+      const viewerSel  = (userParam === 'VIEWER' || userParam === 'READONLY') ? 'selected' : '';
+      const noneSel    = (!adminSel && !managerSel && !viewerSel) ? 'selected' : '';
       authBox.innerHTML = `
         <div class="form-group">
           <label>Management View:</label>
           <select id="userSelector" onchange="switchManagementUser(this.value)">
-            <option value="ADMIN"   ${currentUser.role === 'ADMIN' && !currentUser.readOnly ? 'selected' : ''}>Khushi Painter (Admin)</option>
-            <option value="MANAGER" ${currentUser.role === 'MANAGER' ? 'selected' : ''}>Mukesh Shukla (Manager)</option>
-            <option value="VIEWER"  ${currentUser.role === 'VIEWER' ? 'selected' : ''}>Manager (View Only)</option>
+            <option value="" disabled hidden ${noneSel}>— Select Role —</option>
+            <option value="ADMIN"   ${adminSel}>Khushi Painter (Admin)</option>
+            <option value="MANAGER" ${managerSel}>Mukesh Shukla (Manager)</option>
+            <option value="VIEWER"  ${viewerSel}>Manager (View Only)</option>
           </select>
         </div>`;
     }
