@@ -502,7 +502,8 @@
     }
 
     if (userParam && !isUrlReadOnly) {
-      document.getElementById('userBadge').innerText = `👤 ${currentUser.name} [${currentUser.role}]`;
+      const roleLabel = (currentUser.independent || currentUser.role === 'USER') ? '' : ` [${currentUser.role}]`;
+      document.getElementById('userBadge').innerText = `👤 ${currentUser.name}${roleLabel}`;
     } else if (isUrlReadOnly) {
       document.getElementById('userBadge').innerText = `👁️ Manager (View Only) [READ]`;
     } else {
